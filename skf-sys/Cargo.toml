@@ -1,6 +1,6 @@
 [package]
 name = "skf-sys"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 authors = [
     "CJ <power4j@outlook.com>",
@@ -17,5 +17,5 @@ categories = ["hardware-support"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-skf-api= { path = "../skf-api", version = "0.1.0" }
+skf-api= { path = "../skf-api", version = "0.2.0" }
 libloading = "0.8.1"
