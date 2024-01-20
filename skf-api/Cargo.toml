@@ -6,7 +6,7 @@ authors = [
     "CJ <power4j@outlook.com>",
 ]
 description = """
-Rust bindings for GM/T 0016-2012(Smart token cryptography application interface specification).
+FFI Types for GM/T 0016-2012(Smart token cryptography application interface specification).
 """
 readme = "README.md"
 documentation = "https://docs.rs/skf-api"
@@ -17,3 +17,4 @@ categories = ["hardware-support"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+thiserror = "1.0"

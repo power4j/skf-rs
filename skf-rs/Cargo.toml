@@ -1,12 +1,12 @@
 [package]
-name = "skf-sys"
-version = "0.2.0"
+name = "skf-rs"
+version = "0.0.1"
 edition = "2021"
 authors = [
     "CJ <power4j@outlook.com>",
 ]
 description = """
-Rust bindings for GM/T 0016-2012(Smart token cryptography application interface specification).
+Rust wrapper for GM/T 0016-2012(Smart token cryptography application interface specification).
 """
 readme = "README.md"
 documentation = "https://docs.rs/skf-sys"
@@ -18,4 +18,7 @@ categories = ["hardware-support"]
 
 [dependencies]
 skf-api= { path = "../skf-api", version = "0.2.0" }
+tracing = "0.1"
+thiserror = "1.0"
+anyhow = "1.0"
 libloading = "0.8.1"
