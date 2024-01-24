@@ -1,7 +1,5 @@
-[![crates.io version badge](https://img.shields.io/crates/v/skf-rs.svg)](https://crates.io/crates/skf-rs)
+[![crates.io version badge](https://img.shields.io/crates/v/skf-rs?label=skf-rs)](https://crates.io/crates/skf-rs)
 [![Documentation](https://docs.rs/skf-rs/badge.svg)](https://docs.rs/skf-rs)
-[![GitHub workflow status](https://img.shields.io/github/actions/workflow/status/power4j/skf-rs/ci.yaml?branch=main&logo=github)](https://github.com/power4j/skf-rs/actions)
-
 
 Rust wrapper for GM/T 0016-2012(Smart token cryptography application interface specification).
 
