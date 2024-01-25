@@ -4,7 +4,7 @@ use crate::helper::mem;
 use crate::{DeviceInformation, SkfDevice, Version};
 use crate::{Error, Result};
 use skf_api::native::error::SAR_OK;
-use skf_api::native::types::{DeviceInfo, BYTE, CHAR, DEV_HANDLE, DEV_LOCK_FOREVER, ULONG};
+use skf_api::native::types::{DeviceInfo, BYTE, CHAR, DEV_LOCK_FOREVER, HANDLE, ULONG};
 use std::fmt::Debug;
 use std::sync::Arc;
 use std::time::Duration;
@@ -13,7 +13,7 @@ use tracing::{instrument, trace};
 pub(crate) struct SkfDeviceImpl {
     lib: Arc<libloading::Library>,
     symbols: ModDev,
-    handle: DEV_HANDLE,
+    handle: HANDLE,
 }
 
 impl SkfDeviceImpl {
@@ -22,7 +22,7 @@ impl SkfDeviceImpl {
     /// [handle] - Native handle
     ///
     /// [lib] - The library handle
-    pub fn new(handle: DEV_HANDLE, lib: &Arc<libloading::Library>) -> Result<Self> {
+    pub fn new(handle: HANDLE, lib: &Arc<libloading::Library>) -> Result<Self> {
         let lc = Arc::clone(lib);
         let symbols = ModDev::load_symbols(lib)?;
         Ok(Self {

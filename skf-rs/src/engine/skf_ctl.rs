@@ -5,7 +5,7 @@ use crate::helper::mem;
 use crate::{Error, Result};
 use crate::{PluginEvent, SkfCtl, SkfDevice};
 use skf_api::native::error::SAR_OK;
-use skf_api::native::types::{BOOL, CHAR, DEV_HANDLE, ULONG};
+use skf_api::native::types::{BOOL, CHAR, HANDLE, ULONG};
 use std::fmt::Debug;
 use std::sync::Arc;
 use tracing::{instrument, trace};
@@ -133,7 +133,7 @@ impl SkfCtl for SkfCtlImpl {
                 anyhow::Error::new(e),
             )
         })?;
-        let mut handle: DEV_HANDLE = std::ptr::null_mut();
+        let mut handle: HANDLE = std::ptr::null_mut();
         let ret = unsafe { func(device_name.as_ptr() as *const CHAR, &mut handle) };
         trace!("[SKF_ConnectDev]: ret = {}", ret);
         if ret != SAR_OK {

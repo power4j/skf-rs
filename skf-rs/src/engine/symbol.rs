@@ -33,7 +33,7 @@ impl<T> std::ops::Deref for SymbolBundle<T> {
 #[allow(non_camel_case_types)]
 pub(crate) mod signature {
     use super::SymbolBundle;
-    use skf_api::native::types::{DeviceInfo, BOOL, BYTE, CHAR, DEV_HANDLE, ULONG};
+    use skf_api::native::types::{DeviceInfo, BOOL, BYTE, CHAR, HANDLE, ULONG};
 
     pub(super) type SKF_WaitForDevEvent =
         SymbolBundle<unsafe extern "C" fn(*mut CHAR, *mut ULONG, *mut ULONG) -> ULONG>;
@@ -47,22 +47,21 @@ pub(crate) mod signature {
         SymbolBundle<unsafe extern "C" fn(*const CHAR, *mut ULONG) -> ULONG>;
 
     pub(super) type SKF_ConnectDev =
-        SymbolBundle<unsafe extern "C" fn(*const CHAR, *mut DEV_HANDLE) -> ULONG>;
+        SymbolBundle<unsafe extern "C" fn(*const CHAR, *mut HANDLE) -> ULONG>;
 
-    pub(super) type SKF_DisConnectDev = SymbolBundle<unsafe extern "C" fn(DEV_HANDLE) -> ULONG>;
+    pub(super) type SKF_DisConnectDev = SymbolBundle<unsafe extern "C" fn(HANDLE) -> ULONG>;
 
-    pub(super) type SKF_SetLabel =
-        SymbolBundle<unsafe extern "C" fn(DEV_HANDLE, *const CHAR) -> ULONG>;
+    pub(super) type SKF_SetLabel = SymbolBundle<unsafe extern "C" fn(HANDLE, *const CHAR) -> ULONG>;
 
     pub(super) type SKF_GetDevInfo =
-        SymbolBundle<unsafe extern "C" fn(DEV_HANDLE, *mut DeviceInfo) -> ULONG>;
+        SymbolBundle<unsafe extern "C" fn(HANDLE, *mut DeviceInfo) -> ULONG>;
 
-    pub(super) type SKF_LockDev = SymbolBundle<unsafe extern "C" fn(DEV_HANDLE, ULONG) -> ULONG>;
+    pub(super) type SKF_LockDev = SymbolBundle<unsafe extern "C" fn(HANDLE, ULONG) -> ULONG>;
 
-    pub(super) type SKF_UnlockDev = SymbolBundle<unsafe extern "C" fn(DEV_HANDLE) -> ULONG>;
+    pub(super) type SKF_UnlockDev = SymbolBundle<unsafe extern "C" fn(HANDLE) -> ULONG>;
 
     pub(super) type SKF_Transmit = SymbolBundle<
-        unsafe extern "C" fn(DEV_HANDLE, *const BYTE, ULONG, *mut BYTE, *mut ULONG) -> ULONG,
+        unsafe extern "C" fn(HANDLE, *const BYTE, ULONG, *mut BYTE, *mut ULONG) -> ULONG,
     >;
 }
 

@@ -22,7 +22,7 @@ pub type UINT = INT32;
 pub type USHORT = UINT16;
 pub type ULONG = UINT32;
 
-pub type BOOL = bool;
+pub type BOOL = UINT32;
 pub type BYTE = UINT8;
 pub type CHAR = UINT8;
 
@@ -32,12 +32,10 @@ pub type DWORD = UINT32;
 pub type FLAGS = UINT32;
 
 pub type LPSTR = *const CHAR;
-pub type DEV_HANDLE = *const Void;
-pub type H_APPLICATION = ffi::c_void;
-pub type H_CONTAINER = ffi::c_void;
+pub type HANDLE = *const Void;
 
-pub const TRUE: BOOL = true as BOOL;
-pub const FALSE: BOOL = true as BOOL;
+pub const TRUE: BOOL = 0x00000001;
+pub const FALSE: BOOL = 0x00000000;
 
 pub const DEV_LOCK_FOREVER: ULONG = 0xffffffff;
 pub const ADMIN_TYPE: BYTE = 0x0;
