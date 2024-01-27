@@ -31,9 +31,9 @@ impl<T> std::ops::Deref for SymbolBundle<T> {
 }
 
 #[allow(non_camel_case_types)]
-pub(crate) mod signature {
+pub(crate) mod device_fn {
     use super::SymbolBundle;
-    use skf_api::native::types::{DeviceInfo, BOOL, BYTE, CHAR, HANDLE, ULONG};
+    use skf_api::native::types::{DeviceInfo, BOOL, BYTE, CHAR, DWORD, HANDLE, LPSTR, ULONG};
 
     pub(super) type SKF_WaitForDevEvent =
         SymbolBundle<unsafe extern "C" fn(*mut CHAR, *mut ULONG, *mut ULONG) -> ULONG>;
@@ -63,15 +63,42 @@ pub(crate) mod signature {
     pub(super) type SKF_Transmit = SymbolBundle<
         unsafe extern "C" fn(HANDLE, *const BYTE, ULONG, *mut BYTE, *mut ULONG) -> ULONG,
     >;
+
+    pub(super) type SKF_ChangeDevAuthKey =
+        SymbolBundle<unsafe extern "C" fn(HANDLE, *const BYTE, ULONG) -> ULONG>;
+
+    pub(super) type SKF_DevAuth =
+        SymbolBundle<unsafe extern "C" fn(HANDLE, *const BYTE, ULONG) -> ULONG>;
+
+    pub(super) type SKF_CreateApplication = SymbolBundle<
+        unsafe extern "C" fn(
+            HANDLE,
+            LPSTR,
+            LPSTR,
+            DWORD,
+            LPSTR,
+            DWORD,
+            DWORD,
+            *mut HANDLE,
+        ) -> ULONG,
+    >;
+
+    pub(super) type SKF_OpenApplication =
+        SymbolBundle<unsafe extern "C" fn(HANDLE, LPSTR, *mut HANDLE) -> ULONG>;
+
+    pub(super) type SKF_EnumApplication =
+        SymbolBundle<unsafe extern "C" fn(HANDLE, *mut CHAR, *mut ULONG) -> ULONG>;
+    pub(super) type SKF_DeleteApplication =
+        SymbolBundle<unsafe extern "C" fn(HANDLE, LPSTR) -> ULONG>;
 }
 
 #[derive(Default)]
 pub(crate) struct ModCtl {
-    pub enum_dev: Option<signature::SKF_EnumDev>,
-    pub wait_plug_event: Option<signature::SKF_WaitForDevEvent>,
-    pub cancel_wait_plug_event: Option<signature::SKF_CancelWaitForDevEvent>,
-    pub get_dev_state: Option<signature::SKF_GetDevState>,
-    pub connect_dev: Option<signature::SKF_ConnectDev>,
+    pub enum_dev: Option<device_fn::SKF_EnumDev>,
+    pub wait_plug_event: Option<device_fn::SKF_WaitForDevEvent>,
+    pub cancel_wait_plug_event: Option<device_fn::SKF_CancelWaitForDevEvent>,
+    pub get_dev_state: Option<device_fn::SKF_GetDevState>,
+    pub connect_dev: Option<device_fn::SKF_ConnectDev>,
 }
 
 impl ModCtl {
@@ -95,33 +122,55 @@ impl ModCtl {
 
 #[derive(Default)]
 pub(crate) struct ModDev {
-    pub set_label: Option<signature::SKF_SetLabel>,
-    pub dis_connect_dev: Option<signature::SKF_DisConnectDev>,
-    pub get_info: Option<signature::SKF_GetDevInfo>,
-    pub lock_dev: Option<signature::SKF_LockDev>,
-    pub unlock_dev: Option<signature::SKF_UnlockDev>,
-    pub transmit: Option<signature::SKF_Transmit>,
+    pub dev_set_label: Option<device_fn::SKF_SetLabel>,
+    pub dev_dis_connect: Option<device_fn::SKF_DisConnectDev>,
+    pub dev_get_info: Option<device_fn::SKF_GetDevInfo>,
+    pub dev_lock: Option<device_fn::SKF_LockDev>,
+    pub dev_unlock: Option<device_fn::SKF_UnlockDev>,
+    pub dev_transmit: Option<device_fn::SKF_Transmit>,
+    pub dev_auth: Option<device_fn::SKF_DevAuth>,
+    pub dev_change_auth_key: Option<device_fn::SKF_ChangeDevAuthKey>,
+    pub app_create: Option<device_fn::SKF_CreateApplication>,
+    pub app_open: Option<device_fn::SKF_OpenApplication>,
+    pub app_delete: Option<device_fn::SKF_DeleteApplication>,
+    pub app_enum: Option<device_fn::SKF_EnumApplication>,
 }
 
 impl ModDev {
     pub fn load_symbols(lib: &Arc<Library>) -> crate::Result<Self> {
-        let set_label = Some(unsafe { SymbolBundle::new(lib, b"SKF_SetLabel\0")? });
-        let dis_connect_dev = Some(unsafe { SymbolBundle::new(lib, b"SKF_DisConnectDev\0")? });
-        let get_info = Some(unsafe { SymbolBundle::new(lib, b"SKF_GetDevInfo\0")? });
-        let lock_dev = Some(unsafe { SymbolBundle::new(lib, b"SKF_LockDev\0")? });
-        let unlock_dev = Some(unsafe { SymbolBundle::new(lib, b"SKF_UnlockDev\0")? });
-        let transmit = Some(unsafe { SymbolBundle::new(lib, b"SKF_Transmit\0")? });
+        let dev_set_label = Some(unsafe { SymbolBundle::new(lib, b"SKF_SetLabel\0")? });
+        let dev_dis_connect = Some(unsafe { SymbolBundle::new(lib, b"SKF_DisConnectDev\0")? });
+        let dev_get_info = Some(unsafe { SymbolBundle::new(lib, b"SKF_GetDevInfo\0")? });
+        let dev_lock = Some(unsafe { SymbolBundle::new(lib, b"SKF_LockDev\0")? });
+        let dev_unlock = Some(unsafe { SymbolBundle::new(lib, b"SKF_UnlockDev\0")? });
+        let dev_transmit = Some(unsafe { SymbolBundle::new(lib, b"SKF_Transmit\0")? });
+        let dev_auth = Some(unsafe { SymbolBundle::new(lib, b"SKF_DevAuth\0")? });
+        let dev_change_auth_key =
+            Some(unsafe { SymbolBundle::new(lib, b"SKF_ChangeDevAuthKey\0")? });
+        let app_create = Some(unsafe { SymbolBundle::new(lib, b"SKF_CreateApplication\0")? });
+        let app_open = Some(unsafe { SymbolBundle::new(lib, b"SKF_OpenApplication\0")? });
+        let app_delete = Some(unsafe { SymbolBundle::new(lib, b"SKF_DeleteApplication\0")? });
+        let app_enum = Some(unsafe { SymbolBundle::new(lib, b"SKF_EnumApplication\0")? });
         let holder = Self {
-            set_label,
-            dis_connect_dev,
-            get_info,
-            lock_dev,
-            unlock_dev,
-            transmit,
+            dev_set_label,
+            dev_dis_connect,
+            dev_get_info,
+            dev_lock,
+            dev_unlock,
+            dev_transmit,
+            dev_auth,
+            dev_change_auth_key,
+            app_create,
+            app_open,
+            app_delete,
+            app_enum,
         };
         Ok(holder)
     }
 }
+
+#[derive(Default)]
+pub(crate) struct ModApp {}
 
 #[cfg(test)]
 mod test {

@@ -68,13 +68,6 @@ extern "C" {
         size: *mut ULONG,
     ) -> ULONG;
 
-    /// 删除指定的应用
-    ///
-    /// [device_handle]		`[IN]`连接设备时返回的设备句柄
-    ///
-    /// [sz_app_name]		`[IN]`应用名称
-    pub fn SKF_DeleteApplication(device_handle: HANDLE, sz_app_name: LPSTR) -> ULONG;
-
     /// 打开指定的应用
     ///
     /// [device_handle]		`[IN]`连接设备时返回的设备句柄
@@ -87,6 +80,13 @@ extern "C" {
         sz_app_name: LPSTR,
         app_handle: *mut HANDLE,
     ) -> ULONG;
+
+    /// 删除指定的应用
+    ///
+    /// [device_handle]		`[IN]`连接设备时返回的设备句柄
+    ///
+    /// [sz_app_name]		`[IN]`应用名称
+    pub fn SKF_DeleteApplication(device_handle: HANDLE, sz_app_name: LPSTR) -> ULONG;
 
     /// 关闭应用并释放应用句柄
     ///

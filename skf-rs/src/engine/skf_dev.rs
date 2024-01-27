@@ -1,10 +1,15 @@
 use crate::engine::symbol::ModDev;
 use crate::error::{InvalidArgumentError, SkfErr};
-use crate::helper::mem;
-use crate::{DeviceInformation, SkfDevice, Version};
+use crate::helper::{mem, param};
+use crate::{
+    AppCtl, CreateAppOption, DeviceCtl, DeviceInformation, DeviceSecurity, SkfApp, SkfDevice,
+    Version,
+};
 use crate::{Error, Result};
 use skf_api::native::error::SAR_OK;
-use skf_api::native::types::{DeviceInfo, BYTE, CHAR, DEV_LOCK_FOREVER, HANDLE, ULONG};
+use skf_api::native::types::{
+    DeviceInfo, BOOL, BYTE, CHAR, DEV_LOCK_FOREVER, DWORD, HANDLE, LPSTR, ULONG,
+};
 use std::fmt::Debug;
 use std::sync::Arc;
 use std::time::Duration;
@@ -33,7 +38,7 @@ impl SkfDeviceImpl {
     }
 
     fn disconnect(&mut self) -> Result<()> {
-        if let Some(ref func) = self.symbols.dis_connect_dev {
+        if let Some(ref func) = self.symbols.dev_dis_connect {
             let ret = unsafe { func(self.handle.clone()) };
             trace!("[SKF_DisConnectDev]: ret = {}", ret);
             if ret != SAR_OK {
@@ -51,16 +56,55 @@ impl Debug for SkfDeviceImpl {
     }
 }
 
-impl SkfDevice for SkfDeviceImpl {
+impl DeviceSecurity for SkfDeviceImpl {
+    #[instrument]
+    fn device_auth(&self, data: &[u8]) -> Result<()> {
+        let func = self.symbols.dev_auth.as_ref().expect("Symbol not load");
+        let ret = unsafe {
+            func(
+                self.handle.clone(),
+                data.as_ptr() as *const BYTE,
+                data.len() as ULONG,
+            )
+        };
+        trace!("[SKF_DevAuth]: ret = {}", ret);
+        if ret != SAR_OK {
+            return Err(Error::Skf(SkfErr::with_default_msg(ret)));
+        }
+        Ok(())
+    }
+
+    #[instrument]
+    fn change_device_auth_key(&self, key: &[u8]) -> Result<()> {
+        let func = self
+            .symbols
+            .dev_change_auth_key
+            .as_ref()
+            .expect("Symbol not load");
+        let ret = unsafe {
+            func(
+                self.handle.clone(),
+                key.as_ptr() as *const BYTE,
+                key.len() as ULONG,
+            )
+        };
+        trace!("[SKF_ChangeDevAuthKey]: ret = {}", ret);
+        if ret != SAR_OK {
+            return Err(Error::Skf(SkfErr::with_default_msg(ret)));
+        }
+        Ok(())
+    }
+}
+
+impl DeviceCtl for SkfDeviceImpl {
     #[instrument]
     fn set_label(&self, label: &str) -> Result<()> {
-        let func = self.symbols.set_label.as_ref().expect("Symbol not load");
-        let label = std::ffi::CString::new(label).map_err(|e| {
-            InvalidArgumentError::new(
-                "parameter 'label' is invalid".to_string(),
-                anyhow::Error::new(e),
-            )
-        })?;
+        let func = self
+            .symbols
+            .dev_set_label
+            .as_ref()
+            .expect("Symbol not load");
+        let label = param::as_cstring("label", label)?;
         let ret = unsafe { func(self.handle.clone(), label.as_ptr() as *const CHAR) };
         trace!("[SKF_SetLabel]: ret = {}", ret);
         if ret != SAR_OK {
@@ -71,7 +115,7 @@ impl SkfDevice for SkfDeviceImpl {
 
     #[instrument]
     fn info(&self) -> Result<DeviceInformation> {
-        let func = self.symbols.get_info.as_ref().expect("Symbol not load");
+        let func = self.symbols.dev_get_info.as_ref().expect("Symbol not load");
         let mut data = DeviceInfo::default();
         let ret = unsafe { func(self.handle.clone(), &mut data) };
         trace!("[SKF_GetDevInfo]: ret = {}", ret);
@@ -83,7 +127,7 @@ impl SkfDevice for SkfDeviceImpl {
 
     #[instrument]
     fn lock(&self, timeout: Option<Duration>) -> Result<()> {
-        let func = self.symbols.lock_dev.as_ref().expect("Symbol not load");
+        let func = self.symbols.dev_lock.as_ref().expect("Symbol not load");
         let timeout = timeout
             .map(|ref v| v.as_millis() as ULONG)
             .unwrap_or(DEV_LOCK_FOREVER);
@@ -97,7 +141,7 @@ impl SkfDevice for SkfDeviceImpl {
 
     #[instrument]
     fn unlock(&self) -> Result<()> {
-        let func = self.symbols.unlock_dev.as_ref().expect("Symbol not load");
+        let func = self.symbols.dev_unlock.as_ref().expect("Symbol not load");
         let ret = unsafe { func(self.handle.clone()) };
         trace!("[SKF_UnlockDev]: ret = {}", ret);
         if ret != SAR_OK {
@@ -107,7 +151,7 @@ impl SkfDevice for SkfDeviceImpl {
     }
     #[instrument]
     fn transmit(&self, command: &[u8], recv_capacity: u32) -> Result<Vec<u8>> {
-        let func = self.symbols.transmit.as_ref().expect("Symbol not load");
+        let func = self.symbols.dev_transmit.as_ref().expect("Symbol not load");
         let mut len: ULONG = recv_capacity as ULONG;
         let mut buffer = Vec::<u8>::with_capacity(recv_capacity as usize);
         let ret = unsafe {
@@ -129,6 +173,86 @@ impl SkfDevice for SkfDeviceImpl {
     }
 }
 
+impl AppCtl for SkfDeviceImpl {
+    #[instrument]
+    fn enum_app(&self) -> Result<Vec<String>> {
+        let func = self.symbols.app_enum.as_ref().expect("Symbol not load");
+        let mut len: ULONG = 0;
+        let ret = unsafe { func(self.handle.clone(), std::ptr::null_mut(), &mut len) };
+        if ret != SAR_OK {
+            return Err(Error::Skf(SkfErr::with_default_msg(ret)));
+        }
+        let mut buff = Vec::<CHAR>::with_capacity(len as usize);
+        let ret = unsafe { func(self.handle.clone(), buff.as_mut_ptr(), &mut len) };
+        trace!("[SKF_EnumApplication]: ret = {}", ret);
+        if ret != SAR_OK {
+            return Err(Error::Skf(SkfErr::with_default_msg(ret)));
+        }
+        unsafe { buff.set_len(len as usize) };
+        trace!(
+            "[SKF_EnumApplication]: app list = {}",
+            String::from_utf8_lossy(&buff)
+        );
+        // The spec says string list end with two '\0',but vendor may not do it
+        let list = unsafe { mem::parse_cstr_list_lossy(buff.as_ptr() as *const u8, buff.len()) };
+        Ok(list)
+    }
+
+    #[instrument]
+    fn create_app(&self, option: &CreateAppOption) -> Result<Box<dyn SkfApp>> {
+        let func = self.symbols.app_create.as_ref().expect("Symbol not load");
+        let name = param::as_cstring("option.name", &option.name)?;
+        let admin_pin = param::as_cstring("option.admin_pin", &option.admin_pin)?;
+        let user_pin = param::as_cstring("option.user_pin", &option.user_pin)?;
+        let mut handle: HANDLE = std::ptr::null_mut();
+        let ret = unsafe {
+            func(
+                self.handle.clone(),
+                name.as_ptr() as *const CHAR,
+                admin_pin.as_ptr() as *const CHAR,
+                option.admin_pin_retry_count as DWORD,
+                user_pin.as_ptr() as *const CHAR,
+                option.user_pin_retry_count as DWORD,
+                option.create_file_rights as DWORD,
+                &mut handle,
+            )
+        };
+        trace!("[SKF_CreateApplication]: ret = {}", ret);
+        if ret != SAR_OK {
+            return Err(Error::Skf(SkfErr::with_default_msg(ret)));
+        }
+
+        todo!()
+    }
+
+    #[instrument]
+    fn open_app(&self, name: &str) -> Result<Box<dyn SkfApp>> {
+        let func = self.symbols.app_open.as_ref().expect("Symbol not load");
+        let name = param::as_cstring("name", name)?;
+        let mut handle: HANDLE = std::ptr::null_mut();
+        let ret = unsafe { func(self.handle.clone(), name.as_ptr() as LPSTR, &mut handle) };
+        trace!("[SKF_OpenApplication]: ret = {}", ret);
+        if ret != SAR_OK {
+            return Err(Error::Skf(SkfErr::with_default_msg(ret)));
+        }
+        todo!()
+    }
+
+    #[instrument]
+    fn delete_app(&self, name: &str) -> Result<()> {
+        let func = self.symbols.app_delete.as_ref().expect("Symbol not load");
+        let name = param::as_cstring("name", name)?;
+        let mut handle: HANDLE = std::ptr::null_mut();
+        let ret = unsafe { func(self.handle.clone(), name.as_ptr() as LPSTR) };
+        trace!("[SKF_DeleteApplication]: ret = {}", ret);
+        if ret != SAR_OK {
+            return Err(Error::Skf(SkfErr::with_default_msg(ret)));
+        }
+        Ok(())
+    }
+}
+
+impl SkfDevice for SkfDeviceImpl {}
 impl Drop for SkfDeviceImpl {
     fn drop(&mut self) {
         let _ = self.disconnect();

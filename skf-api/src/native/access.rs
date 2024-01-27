@@ -126,5 +126,5 @@ extern "C" {
     /// 清除应用当前的安全状态
     ///
     /// [app_handle]	`[IN]`应用句柄
-    pub fn SKF_ClearSecureState(handle: HANDLE) -> ULONG;
+    pub fn SKF_ClearSecureState(app_handle: HANDLE) -> ULONG;
 }

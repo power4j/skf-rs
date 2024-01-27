@@ -4,12 +4,14 @@ use std::thread;
 
 mod common;
 use common::chose_first;
+use skf_rs::helper::describe_result;
+
 #[test]
 #[ignore]
 fn enum_device_test() {
     let engine = Engine::new(LibLoader::env_lookup().unwrap());
-    let ctl = engine.skf_ctl().unwrap();
-    let ret = ctl.enum_device(true);
+    let manager = engine.device_manager().unwrap();
+    let ret = manager.enum_device(true);
     println!("result: {:?}", &ret);
     assert!(ret.is_ok());
 }
@@ -18,8 +20,8 @@ fn enum_device_test() {
 #[ignore]
 fn device_state_test() {
     let engine = Engine::new(LibLoader::env_lookup().unwrap());
-    let ctl = engine.skf_ctl().unwrap();
-    let ret = ctl.device_state("xx");
+    let manager = engine.device_manager().unwrap();
+    let ret = manager.device_state("xx");
     println!("result: {:?}", &ret);
     assert!(ret.is_ok());
 }
@@ -27,8 +29,9 @@ fn device_state_test() {
 #[ignore]
 fn connect_test() {
     let engine = Engine::new(LibLoader::env_lookup().unwrap());
-    let ctl = engine.skf_ctl().unwrap();
-    let ret = ctl.connect("xx");
+    let manager = engine.device_manager().unwrap();
+    let ret = manager.connect("xx");
+    println!("result: {:?}", describe_result(&ret));
     assert!(ret.is_err());
 }
 
@@ -36,8 +39,9 @@ fn connect_test() {
 #[ignore]
 fn connect_selector_test() {
     let engine = Engine::new(LibLoader::env_lookup().unwrap());
-    let ctl = engine.skf_ctl().unwrap();
-    let ret = ctl.connect_selected(chose_first);
+    let manager = engine.device_manager().unwrap();
+    let ret = manager.connect_selected(chose_first);
+    println!("result: {:?}", describe_result(&ret));
     assert!(ret.is_ok());
 }
 
@@ -45,15 +49,15 @@ fn connect_selector_test() {
 #[ignore]
 fn plug_event_test() {
     let engine = Engine::new(LibLoader::env_lookup().unwrap());
-    let ctl = engine.skf_ctl_arc().unwrap();
-    let ctl_clone = Arc::clone(&ctl);
+    let manager = engine.device_manager_arc().unwrap();
+    let manager_clone = Arc::clone(&manager);
     let _ = thread::spawn(move || {
-        thread::sleep(std::time::Duration::from_secs(5));
-        let ret = ctl_clone.cancel_wait_plug_event();
+        thread::sleep(std::time::Duration::from_secs(2));
+        let ret = manager_clone.cancel_wait_plug_event();
         println!("cancel_wait_plug_event result: {:?}", &ret);
         assert!(ret.is_ok());
     });
-    let ret = ctl.wait_plug_event();
+    let ret = manager.wait_plug_event();
     println!("wait_plug_event result: {:?}", &ret);
     assert!(ret.is_ok());
 }

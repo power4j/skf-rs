@@ -34,7 +34,7 @@ impl Display for InvalidArgumentError {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct SkfErr {
     pub code: u32,
     pub message: String,
@@ -57,6 +57,16 @@ impl std::error::Error for SkfErr {}
 
 impl Display for SkfErr {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "[{}] - {}", self.code, &self.message)
+        write!(f, "[{:#010x}] - {}", self.code, &self.message)
+    }
+}
+
+impl Debug for SkfErr {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "[{:#010x}({}) ] - {}",
+            self.code, self.code, &self.message
+        )
     }
 }

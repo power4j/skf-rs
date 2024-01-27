@@ -1,9 +1,9 @@
 use crate::engine::skf_dev::SkfDeviceImpl;
 use crate::engine::symbol::ModCtl;
 use crate::error::{InvalidArgumentError, SkfErr};
-use crate::helper::mem;
+use crate::helper::{mem, param};
+use crate::{DeviceManager, PluginEvent, SkfDevice};
 use crate::{Error, Result};
-use crate::{PluginEvent, SkfCtl, SkfDevice};
 use skf_api::native::error::SAR_OK;
 use skf_api::native::types::{BOOL, CHAR, HANDLE, ULONG};
 use std::fmt::Debug;
@@ -32,7 +32,7 @@ impl Debug for SkfCtlImpl {
     }
 }
 
-impl SkfCtl for SkfCtlImpl {
+impl DeviceManager for SkfCtlImpl {
     #[instrument]
     fn enum_device(&self, presented_only: bool) -> Result<Vec<String>> {
         let func = self.symbols.enum_dev.as_ref().expect("Symbol not load");
@@ -64,12 +64,7 @@ impl SkfCtl for SkfCtlImpl {
             .get_dev_state
             .as_ref()
             .expect("Symbol not load");
-        let device_name = std::ffi::CString::new(device_name).map_err(|e| {
-            InvalidArgumentError::new(
-                "parameter 'device_name' is invalid".to_string(),
-                anyhow::Error::new(e),
-            )
-        })?;
+        let device_name = param::as_cstring("device_name", device_name)?;
         let mut satate: ULONG = 0;
         let ret = unsafe { func(device_name.as_ptr() as *const CHAR, &mut satate) };
         if ret != SAR_OK {
@@ -127,12 +122,7 @@ impl SkfCtl for SkfCtlImpl {
     #[instrument]
     fn connect(&self, device_name: &str) -> Result<Box<dyn SkfDevice>> {
         let func = self.symbols.connect_dev.as_ref().expect("Symbol not load");
-        let device_name = std::ffi::CString::new(device_name).map_err(|e| {
-            InvalidArgumentError::new(
-                "parameter 'device_name' is invalid".to_string(),
-                anyhow::Error::new(e),
-            )
-        })?;
+        let device_name = param::as_cstring("device_name", device_name)?;
         let mut handle: HANDLE = std::ptr::null_mut();
         let ret = unsafe { func(device_name.as_ptr() as *const CHAR, &mut handle) };
         trace!("[SKF_ConnectDev]: ret = {}", ret);

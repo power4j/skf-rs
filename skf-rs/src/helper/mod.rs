@@ -173,3 +173,32 @@ pub mod mem {
         }
     }
 }
+
+pub mod param {
+    use crate::error::InvalidArgumentError;
+    use crate::Result;
+    use std::ffi::CString;
+
+    /// Convert `&str`to `CString`
+    ///
+    /// ## Errors
+    /// This function will return an error if conversion from `&str` to `CString` fails,The error message use `param_name` to describe the parameter.
+    pub fn as_cstring(
+        param_name: impl AsRef<str>,
+        param_value: impl AsRef<str>,
+    ) -> Result<CString> {
+        let value = CString::new(param_value.as_ref()).map_err(|e| {
+            InvalidArgumentError::new(
+                format!("parameter '{}' is invalid", param_name.as_ref()),
+                anyhow::Error::new(e),
+            )
+        })?;
+        Ok(value)
+    }
+}
+pub fn describe_result<T>(result: &crate::Result<T>) -> String {
+    match result.as_ref() {
+        Ok(_) => "OK".to_string(),
+        Err(e) => format!("{:?}", e),
+    }
+}

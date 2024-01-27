@@ -86,7 +86,11 @@ pub struct DeviceInformation {
     pub reserved: [u8; 64],
 }
 
-pub trait SkfCtl {
+pub const DEV_STATE_ABSENT: u32 = 0;
+pub const DEV_STATE_PRESENT: u32 = 1;
+pub const DEV_STATE_UNKNOWN: u32 = 2;
+
+pub trait DeviceManager {
     /// Enumerate all devices
     ///
     /// [presented_only] - Enumerate only presented devices,false means list all supported devices by underlying driver
@@ -95,6 +99,11 @@ pub trait SkfCtl {
     /// Get device state
     ///
     /// [device_name] - The device name
+    ///
+    /// # state value
+    /// - [DEV_STATE_ABSENT]
+    /// - [DEV_STATE_PRESENT]
+    /// - [DEV_STATE_UNKNOWN]
     fn device_state(&self, device_name: &str) -> Result<u32>;
 
     /// Wait for plug event,This function will block current thread
@@ -121,7 +130,7 @@ pub trait SkfCtl {
     ) -> Result<Option<Box<dyn SkfDevice>>>;
 }
 
-pub trait SkfDevice {
+pub trait DeviceCtl {
     /// Set label of device
     ///
     /// [label] - The label.
@@ -151,3 +160,104 @@ pub trait SkfDevice {
     /// This function is for testing purpose
     fn transmit(&self, command: &[u8], recv_capacity: u32) -> Result<Vec<u8>>;
 }
+
+#[derive(Debug, Default)]
+pub struct CreateAppOption {
+    pub name: String,
+    pub admin_pin: String,
+    pub admin_pin_retry_count: u32,
+    pub user_pin: String,
+    pub user_pin_retry_count: u32,
+    pub create_file_rights: u32,
+}
+pub trait AppCtl {
+    ///  Enumerate all apps in the device,return app names
+    fn enum_app(&self) -> Result<Vec<String>>;
+
+    /// Create app in the device
+    ///
+    ///[option] - The app option
+    fn create_app(&self, option: &CreateAppOption) -> Result<Box<dyn SkfApp>>;
+
+    /// Open app
+    ///
+    /// [name] - The app name to open
+    fn open_app(&self, name: &str) -> Result<Box<dyn SkfApp>>;
+    /// Delete app
+    ///
+    /// [name] - The app name to delete
+    fn delete_app(&self, name: &str) -> Result<()>;
+}
+pub trait DeviceSecurity {
+    /// Device authentication
+    ///
+    /// [data] - The authentication data
+    ///
+    /// ## authentication process
+    /// 1. Call the `SKF_GetRandom` function to get an 8-byte random number `RND` from the device,
+    ///    and pads it to the block size of the cryptographic algorithm with `0x00` to form the data block `D0`
+    /// 2. Encrypts `D0` to get the encrypted result `D1`, and calls `SKF_DevAuth`, sending `D1` to the device
+    /// 3. Upon receiving `D1`, the device verifies whether `D1` is correct. If correct, the device authentication passes, otherwise the device authentication fails.
+    fn device_auth(&self, data: &[u8]) -> Result<()>;
+
+    /// Change device authentication key
+    ///
+    /// [key] - The new authentication key
+    fn change_device_auth_key(&self, key: &[u8]) -> Result<()>;
+}
+
+pub trait SkfDevice: DeviceCtl + DeviceSecurity + AppCtl {}
+pub struct PinInfo {
+    pub max_retry_count: u32,
+    pub remain_retry_count: u32,
+    pub default_pin: bool,
+}
+pub trait AppSecurity {
+    /// Lock device for exclusive access
+    ///
+    /// [pin_type] - The pin type,`ADMIN_TYPE=0`,`USER_TYPE=1`
+    ///
+    /// [old_pin] - The old pin
+    ///
+    /// [new_pin] - The new pin
+    ///
+    /// ## specification note
+    /// - PIN verification failed: The value of remaining retry count will be returned, `0` means the PIN has been locked
+    /// - PIN verification success: `None` will be returned
+    fn change_pin(&self, pin_type: u8, old_pin: &str, new_pin: &str) -> Result<Option<u32>>;
+
+    /// Verify PIN
+    ///
+    /// [pin_type] - The pin type,`ADMIN_TYPE=0`,`USER_TYPE=1`
+    ///
+    /// [pin] - The pin value
+    /// ## specification note
+    /// - PIN verification failed: The value of remaining retry count will be returned, `0` means the PIN has been locked
+    /// - PIN verification success: `None` will be returned
+    fn verify_pin(&self, pin_type: u8, pin: &str) -> Result<Option<u32>>;
+
+    /// Get PIN info
+    ///
+    /// [pin_type] - The pin type,`ADMIN_TYPE=0`,`USER_TYPE=1`
+    fn pin_info(&self, pin_type: u8) -> Result<PinInfo>;
+
+    /// Unlock user PIN
+    ///
+    /// [admin_pin] - The admin PIN
+    ///
+    /// [new_pin] - The new PIN
+    ///
+    /// [recv_capacity] - The capacity of receive buffer
+    /// # specification note
+    /// - PIN verification failed: The value of remaining retry count will be returned, `0` means the PIN has been locked
+    /// - PIN verification success: `None` will be returned
+    fn unlock_pin(&self, admin_pin: &str, new_pin: &str) -> Result<Option<u32>>;
+
+    /// Clear secure state
+    fn clear_secure_state(&self) -> Result<()>;
+}
+
+pub trait SkfApp: AppSecurity {}
+
+pub trait ContainerSecurity {}
+pub trait SkfContainer {}
