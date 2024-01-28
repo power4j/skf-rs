@@ -2,7 +2,7 @@ use crate::engine::symbol::ModDev;
 use crate::error::{InvalidArgumentError, SkfErr};
 use crate::helper::{mem, param};
 use crate::{
-    AppCtl, CreateAppOption, DeviceCtl, DeviceInformation, DeviceSecurity, SkfApp, SkfDevice,
+    AppManager, CreateAppOption, DeviceCtl, DeviceInformation, DeviceSecurity, SkfApp, SkfDevice,
     Version,
 };
 use crate::{Error, Result};
@@ -173,9 +173,9 @@ impl DeviceCtl for SkfDeviceImpl {
     }
 }
 
-impl AppCtl for SkfDeviceImpl {
+impl AppManager for SkfDeviceImpl {
     #[instrument]
-    fn enum_app(&self) -> Result<Vec<String>> {
+    fn enumerate_app(&self) -> Result<Vec<String>> {
         let func = self.symbols.app_enum.as_ref().expect("Symbol not load");
         let mut len: ULONG = 0;
         let ret = unsafe { func(self.handle.clone(), std::ptr::null_mut(), &mut len) };
