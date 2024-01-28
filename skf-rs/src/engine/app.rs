@@ -4,7 +4,6 @@ use crate::helper::{mem, param};
 use crate::{AppSecurity, ContainerManager, Error, FileAttr, FileManager, PinInfo, SkfApp};
 use skf_api::native::error::{SAR_OK, SAR_PIN_INCORRECT};
 use skf_api::native::types::{FileAttribute, BOOL, BYTE, CHAR, FALSE, HANDLE, LPSTR, ULONG};
-use std::ffi::CString;
 use std::fmt::Debug;
 use std::sync::Arc;
 use tracing::{instrument, trace};
@@ -338,23 +337,6 @@ impl ContainerManager for SkfAppImpl {
     #[instrument]
     fn delete_container(&self, name: &str) -> crate::Result<()> {
         todo!()
-    }
-}
-
-pub fn make_file_attribute(src: &FileAttr) -> FileAttribute {
-    let mut file_name = [0u8 as CHAR; 32];
-    unsafe {
-        mem::write_cstr_ptr(
-            src.file_name.as_str(),
-            file_name.as_mut_ptr() as *mut u8,
-            file_name.len(),
-        );
-    }
-    FileAttribute {
-        file_name,
-        file_size: src.file_size,
-        read_rights: src.read_rights,
-        write_rights: src.write_rights,
     }
 }
 

@@ -1,5 +1,5 @@
 use crate::engine::symbol::ModDev;
-use crate::error::{InvalidArgumentError, SkfErr};
+use crate::error::SkfErr;
 use crate::helper::{mem, param};
 use crate::{
     AppManager, CreateAppOption, DeviceCtl, DeviceInformation, DeviceSecurity, SkfApp, SkfDevice,
@@ -8,7 +8,7 @@ use crate::{
 use crate::{Error, Result};
 use skf_api::native::error::SAR_OK;
 use skf_api::native::types::{
-    DeviceInfo, BOOL, BYTE, CHAR, DEV_LOCK_FOREVER, DWORD, HANDLE, LPSTR, ULONG,
+    DeviceInfo, BYTE, CHAR, DEV_LOCK_FOREVER, DWORD, HANDLE, LPSTR, ULONG,
 };
 use std::fmt::Debug;
 use std::sync::Arc;

@@ -1,6 +1,6 @@
 use crate::engine::device::SkfDeviceImpl;
 use crate::engine::symbol::ModMag;
-use crate::error::{InvalidArgumentError, SkfErr};
+use crate::error::SkfErr;
 use crate::helper::{mem, param};
 use crate::{DeviceManager, PluginEvent, SkfDevice};
 use crate::{Error, Result};

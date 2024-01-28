@@ -46,7 +46,7 @@ extern "C" {
 
     /// 产生指定长度的随机数
     ///
-    /// [device_handle] 设备句柄
+    /// [device_handle] `[IN]`设备句柄
     pub fn SKF_GenRandom(device_handle: HANDLE, data: *mut BYTE, len: ULONG) -> ULONG;
 
     /// 设置明文对称密钥，返回密钥句柄

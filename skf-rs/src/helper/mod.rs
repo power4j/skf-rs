@@ -1,6 +1,6 @@
 pub mod mem {
     use std::cmp::min;
-    use std::ffi::{CStr, CString};
+    use std::ffi::CStr;
     use std::slice;
 
     /// Returns the position of the first null byte
@@ -48,10 +48,8 @@ pub mod mem {
     pub const unsafe fn first_two_null_byte(ptr: *const u8, len: usize) -> Option<usize> {
         let mut pos = 0;
         while pos < len {
-            if *ptr.add(pos) == 0 {
-                if pos + 1 < len && *ptr.add(pos + 1) == 0 {
-                    return Some(pos + 1);
-                }
+            if *ptr.add(pos) == 0 && pos + 1 < len && *ptr.add(pos + 1) == 0 {
+                return Some(pos + 1);
             }
             pos = pos + 1;
         }
@@ -195,8 +193,8 @@ pub mod mem {
     ///
     /// [buffer_len] - The length of the buffer
     pub unsafe fn write_cstr_ptr(src: impl AsRef<str>, buffer_ptr: *mut u8, buffer_len: usize) {
-        let mut bytes = slice::from_raw_parts(buffer_ptr, buffer_len);
-        write_cstr(src, &mut bytes);
+        let bytes = slice::from_raw_parts_mut(buffer_ptr, buffer_len);
+        write_cstr(src, bytes);
     }
 
     #[cfg(test)]

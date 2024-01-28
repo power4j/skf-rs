@@ -29,21 +29,21 @@ extern "C" {
 
     /// 创建一个应用
     ///
-    /// [device_handle]		`[IN]`连接设备时返回的设备句柄
+    /// [device_handle] `[IN]`连接设备时返回的设备句柄
     ///
-    /// [sz_app_name]		`[IN]`应用名称
+    /// [sz_app_name] `[IN]`应用名称
     ///
-    /// [sz_admin_pin]		`[IN]`管理员PIN
+    /// [sz_admin_pin] `[IN]`管理员PIN
     ///
-    /// [admin_pin_retry_count]	`[IN]`管理员PIN最大重试次数
+    /// [admin_pin_retry_count] `[IN]`管理员PIN最大重试次数
     ///
-    /// [sz_user_pin]		`[IN]`用户PIN
+    /// [sz_user_pin] `[IN]`用户PIN
     ///
-    /// [user_pin_retry_count]	`[IN]`用户PIN最大重试次数
+    /// [user_pin_retry_count] `[IN]`用户PIN最大重试次数
     ///
-    /// [create_file_rights]	`[IN]`在该应用下创建文件和容器的权限
+    /// [create_file_rights] `[IN]`在该应用下创建文件和容器的权限
     ///
-    /// [app_handle]		`[OUT]`应用的句柄
+    /// [app_handle] `[OUT]`应用的句柄
     pub fn SKF_CreateApplication(
         device_handle: HANDLE,
         sz_app_name: LPSTR,
@@ -57,11 +57,11 @@ extern "C" {
 
     /// 枚举设备中所存在的所有应用
     ///
-    /// [device_handle]		`[IN]`连接设备时返回的设备句柄
+    /// [device_handle] `[IN]`连接设备时返回的设备句柄
     ///
-    /// [sz_app_name_list]	`[OUT]`返回应用名称列表, 如果该参数为空，将由`size`返回所需要的内存空间大小。每个应用的名称以单个'\0'结束，以双'\0'表示列表的结束。
+    /// [sz_app_name_list] `[OUT]`返回应用名称列表, 如果该参数为空，将由`size`返回所需要的内存空间大小。每个应用的名称以单个'\0'结束，以双'\0'表示列表的结束。
     ///
-    /// [size]				`[IN,OUT]`输入参数，输入应用名称的缓冲区长度，输出参数，返回`sz_app_name_list`所占用的的空间大小
+    /// [size] `[IN,OUT]`输入参数，输入应用名称的缓冲区长度，输出参数，返回`sz_app_name_list`所占用的的空间大小
     pub fn SKF_EnumApplication(
         device_handle: HANDLE,
         sz_app_name_list: LPSTR,
@@ -70,11 +70,11 @@ extern "C" {
 
     /// 打开指定的应用
     ///
-    /// [device_handle]		`[IN]`连接设备时返回的设备句柄
+    /// [device_handle] `[IN]`连接设备时返回的设备句柄
     ///
-    /// [sz_app_name]		`[IN]`应用名称
+    /// [sz_app_name] `[IN]`应用名称
     ///
-    /// [app_handle]		`[OUT]`应用的句柄
+    /// [app_handle] `[OUT]`应用的句柄
     pub fn SKF_OpenApplication(
         device_handle: HANDLE,
         sz_app_name: LPSTR,
@@ -83,27 +83,27 @@ extern "C" {
 
     /// 删除指定的应用
     ///
-    /// [device_handle]		`[IN]`连接设备时返回的设备句柄
+    /// [device_handle] `[IN]`连接设备时返回的设备句柄
     ///
-    /// [sz_app_name]		`[IN]`应用名称
+    /// [sz_app_name] `[IN]`应用名称
     pub fn SKF_DeleteApplication(device_handle: HANDLE, sz_app_name: LPSTR) -> ULONG;
 
     /// 关闭应用并释放应用句柄
     ///
-    /// [app_handle]		`[IN]`应用的句柄
+    /// [app_handle] `[IN]`应用的句柄
     pub fn SKF_CloseApplication(app_handle: HANDLE) -> ULONG;
 
     /// 创建一个文件。创建文件时要指定文件的名称，大小，以及文件的读写权限
     ///
-    /// [app_handle]		`[IN]`应用句柄
+    /// [app_handle] `[IN]`应用句柄
     ///
-    /// [sz_file_name]		`[IN]`文件名称，长度不得大于32个字节
+    /// [sz_file_name] `[IN]`文件名称，长度不得大于32个字节
     ///
-    /// [file_size]			`[IN]`文件大小
+    /// [file_size] `[IN]`文件大小
     ///
-    /// [read_rights]		`[IN]`文件读权限
+    /// [read_rights] `[IN]`文件读权限
     ///
-    /// [write_rights]		`[IN]`文件写权限,取值为 :`SECURE_NEVER_ACCOUNT`, `SECURE_ADM_ACCOUNT`, `SECURE_USER_ACCOUNT`, `SECURE_EVERYONE_ACCOUNT`
+    /// [write_rights] `[IN]`文件写权限,取值为 :`SECURE_NEVER_ACCOUNT`, `SECURE_ADM_ACCOUNT`, `SECURE_USER_ACCOUNT`, `SECURE_EVERYONE_ACCOUNT`
     pub fn SKF_CreateFile(
         app_handle: HANDLE,
         sz_file_name: LPSTR,
@@ -114,25 +114,25 @@ extern "C" {
 
     /// 删除指定文件，文件删除后，文件中写入的所有信息将丢失。文件在设备中的占用的空间将被释放。
     ///
-    /// [app_handle]		`[IN]`要删除文件所在的应用句柄
+    /// [app_handle] `[IN]`要删除文件所在的应用句柄
     ///
-    /// [sz_file_name]		`[IN]`要删除文件的名称
+    /// [sz_file_name] `[IN]`要删除文件的名称
     pub fn SKF_DeleteFile(app_handle: HANDLE, sz_file_name: LPSTR) -> ULONG;
 
     /// 枚举一个应用下存在的所有文件
     ///
-    /// [app_handle]		`[IN]`应用的句柄
+    /// [app_handle] `[IN]`应用的句柄
     ///
-    /// [sz_file_list]		`[OUT]`返回文件名称列表，该参数为空，由`size`返回文件信息所需要的空间大小。每个文件名称以单个`'\0'`结束，以双`'\0'`表示列表的结束。
+    /// [sz_file_list] `[OUT]`返回文件名称列表，该参数为空，由`size`返回文件信息所需要的空间大小。每个文件名称以单个`'\0'`结束，以双`'\0'`表示列表的结束。
     pub fn SKF_EnumFiles(app_handle: HANDLE, sz_file_list: *mut CHAR, size: *mut ULONG) -> ULONG;
 
     /// 获取应用文件的属性信息，例如文件的大小、权限等
     ///
-    /// [app_handle]		`[IN]`文件所在应用的句柄
+    /// [app_handle] `[IN]`文件所在应用的句柄
     ///
-    /// [sz_file_name]		`[IN]`文件名称
+    /// [sz_file_name] `[IN]`文件名称
     ///
-    /// [file_info]			`[OUT]`文件信息，指向文件属性结构的指针
+    /// [file_info] `[OUT]`文件信息，指向文件属性结构的指针
     pub fn SKF_GetFileInfo(
         app_handle: HANDLE,
         sz_file_name: LPSTR,
@@ -141,17 +141,17 @@ extern "C" {
 
     /// 读取文件内容
     ///
-    /// [app_handle]		`[IN]`文件所在的应用句柄
+    /// [app_handle] `[IN]`文件所在的应用句柄
     ///
-    /// [sz_file_name]		`[IN]`文件名
+    /// [sz_file_name] `[IN]`文件名
     ///
-    /// [offset]			`[IN]`文件读取偏移位置
+    /// [offset] `[IN]`文件读取偏移位置
     ///
-    /// [size]				`[IN]`要读取的长度
+    /// [size] `[IN]`要读取的长度
     ///
-    /// [out_data]			`[OUT]`返回数据的缓冲区
+    /// [out_data] `[OUT]`返回数据的缓冲区
     ///
-    /// [out_len]			`[OUT]`输入表示给出的缓冲区大小，输出表示实际读取返回的数据大小
+    /// [out_len] `[OUT]`输入表示给出的缓冲区大小，输出表示实际读取返回的数据大小
     pub fn SKF_ReadFile(
         app_handle: HANDLE,
         sz_file_name: LPSTR,
@@ -163,15 +163,15 @@ extern "C" {
 
     /// 写数据到文件中
     ///
-    /// [app_handle]		`[IN]`文件所在的应用句柄
+    /// [app_handle] `[IN]`文件所在的应用句柄
     ///
-    /// [sz_file_name]		`[IN]`文件名
+    /// [sz_file_name] `[IN]`文件名
     ///
-    /// [offset]			`[IN]`写入文件的偏移量
+    /// [offset] `[IN]`写入文件的偏移量
     ///
-    /// [data]				`[IN]`写入数据缓冲区
+    /// [data] `[IN]`写入数据缓冲区
     ///
-    /// [size]				`[IN]`写入数据的大小
+    /// [size] `[IN]`写入数据的大小
     pub fn SKF_WriteFile(
         app_handle: HANDLE,
         sz_file_name: LPSTR,
@@ -182,11 +182,11 @@ extern "C" {
 
     /// 在应用下建立指定名称的容器并返回容器句柄
     ///
-    /// [app_handle]		`[IN]`应用句柄
+    /// [app_handle] `[IN]`应用句柄
     ///
-    /// [sz_container_name]	`[IN]`ASCII字符串，表示所建立容器的名称，容器名称的最大长度不能超过64字节
+    /// [sz_container_name] `[IN]`ASCII字符串，表示所建立容器的名称，容器名称的最大长度不能超过64字节
     ///
-    /// [container_handle]	`[OUT]`返回所建立容器的容器句柄
+    /// [container_handle] `[OUT]`返回所建立容器的容器句柄
     pub fn SKF_CreateContainer(
         app_handle: HANDLE,
         sz_container_name: LPSTR,
@@ -195,18 +195,18 @@ extern "C" {
 
     /// 在应用下删除指定名称的容器并释放容器相关的资源
     ///
-    /// [app_handle]		`[IN]`应用句柄
+    /// [app_handle] `[IN]`应用句柄
     ///
-    /// [sz_container_name]	`[IN]`指向删除容器的名称
+    /// [sz_container_name] `[IN]`指向删除容器的名称
     pub fn SKF_DeleteContainer(app_handle: HANDLE, sz_container_name: LPSTR) -> ULONG;
 
     /// 获取容器句柄
     ///
-    /// [app_handle]		`[IN]`应用句柄
+    /// [app_handle] `[IN]`应用句柄
     ///
-    /// [sz_container_name]	`[IN]`容器名称
+    /// [sz_container_name] `[IN]`容器名称
     ///
-    /// [container_handle]	`[OUT]`返回所打开容器的句柄
+    /// [container_handle] `[OUT]`返回所打开容器的句柄
     pub fn SKF_OpenContainer(
         app_handle: HANDLE,
         sz_container_name: LPSTR,
@@ -215,25 +215,25 @@ extern "C" {
 
     /// 关闭容器句柄，并释放容器句柄相关资源
     ///
-    /// [container_handle]		`[IN]`容器句柄
+    /// [container_handle] `[IN]`容器句柄
     ///
     pub fn SKF_CloseContainer(container_handle: HANDLE) -> ULONG;
 
     /// 枚举应用下的所有容器并返回容器名称列表
     ///
-    /// [app_handle]		`[IN]`应用句柄
+    /// [app_handle] `[IN]`应用句柄
     ///
-    /// [list] 			`[OUT]`指向容器名称列表缓冲区
+    /// [list] `[OUT]`指向容器名称列表缓冲区
     /// 如果此参数为`NULL`时，`size`表示返回数据所需要缓冲区的长度，如果此参数不为`NULL`时，返回容器名称列表，每个容器名以单个`'\0'`为结束，列表以双`'\0'`结束
     ///
-    /// [size]				`[IN,OUT]`输入参数，输入容器名称列表的缓冲区长度，输出参数，返回容器名称列表所占用的的空间大小
+    /// [size] `[IN,OUT]`输入参数，输入容器名称列表的缓冲区长度，输出参数，返回容器名称列表所占用的的空间大小
     pub fn SKF_EnumContainer(app_handle: HANDLE, list: *mut CHAR, size: *mut ULONG) -> ULONG;
 
     /// 获取容器的类型
     ///
-    /// [container_handle]		`[IN]`容器句柄
+    /// [container_handle] `[IN]`容器句柄
     ///
-    /// [container_type]		`[OUT]`获得的容器类型。值为`0`表示未定、尚未分配类型或者为空容器，`1`表示为`RSA`容器，`2`表示为`ECC`容器。
+    /// [container_type] `[OUT]`获得的容器类型。值为`0`表示未定、尚未分配类型或者为空容器，`1`表示为`RSA`容器，`2`表示为`ECC`容器。
     pub fn SKF_GetContainerType(container_handle: HANDLE, container_type: *mut ULONG) -> ULONG;
 
     /// 向容器内导入数字证书。

@@ -28,11 +28,11 @@ extern "C" {
 
     /// 更改设备认证密钥
     ///
-    /// [device_handle]		`[IN]`连接时返回的设备句柄
+    /// [device_handle] `[IN]`连接时返回的设备句柄
     ///
-    /// [key_value]		`[IN]`密钥值
+    /// [key_value] `[IN]`密钥值
     ///
-    /// [key_len]		`[IN]`密钥长度
+    /// [key_len] `[IN]`密钥长度
     /// ## 权限要求
     /// 设备认证成功后才能使用。
     pub fn SKF_ChangeDevAuthKey(
@@ -43,24 +43,24 @@ extern "C" {
 
     /// 设备认证
     ///
-    /// [device_handle]		`[IN]`连接时返回的设备句柄
+    /// [device_handle] `[IN]`连接时返回的设备句柄
     ///
-    /// [auth_data]		`[IN]`认证数据
+    /// [auth_data] `[IN]`认证数据
     ///
-    /// [len]		`[IN]`认证数据的长度
+    /// [len] `[IN]`认证数据的长度
     pub fn SKF_DevAuth(device_handle: HANDLE, auth_data: *const BYTE, len: ULONG) -> ULONG;
 
     /// 修改PIN.可以修改Admin和User的PIN，如果原PIN错误，返回剩余重试次数，当剩余次数为0时，表示PIN已经被锁死
     ///
-    /// [app_handle]		`[IN]`应用句柄
+    /// [app_handle] `[IN]`应用句柄
     ///
-    /// [pin_type]		`[IN]`PIN类型，ADMIN_TYPE=0,USER_TYPE=1
+    /// [pin_type] `[IN]`PIN类型，ADMIN_TYPE=0,USER_TYPE=1
     ///
-    /// [sz_old_pin]		`[IN]`原PIN值
+    /// [sz_old_pin] `[IN]`原PIN值
     ///
-    /// [sz_new_pin]		`[IN]`新PIN值
+    /// [sz_new_pin] `[IN]`新PIN值
     ///
-    /// [retry_count]	`[OUT]`出错后重试次数
+    /// [retry_count] `[OUT]`出错后重试次数
     pub fn SKF_ChangePIN(
         app_handle: HANDLE,
         pin_type: ULONG,
@@ -71,15 +71,15 @@ extern "C" {
 
     /// 获取PIN码信息，包括最大重试次数、当前剩余重试次数，以及当前PIN码是否为出厂默认PIN码
     ///
-    /// [app_handle]		`[IN]`应用句柄
+    /// [app_handle] `[IN]`应用句柄
     ///
-    /// [pin_type]		`[IN]`PIN类型
+    /// [pin_type] `[IN]`PIN类型
     ///
-    /// [max_retry_count]	`[OUT]`最大重试次数
+    /// [max_retry_count] `[OUT]`最大重试次数
     ///
-    /// [remain_retry_count]	`[OUT]`当前剩余重试次数，当为0时表示已锁死
+    /// [remain_retry_count] `[OUT]`当前剩余重试次数，当为0时表示已锁死
     ///
-    /// [default_pin]		`[OUT]`是否为出厂默认PIN码
+    /// [default_pin] `[OUT]`是否为出厂默认PIN码
     pub fn SKF_GetPINInfo(
         app_handle: HANDLE,
         pin_type: ULONG,
@@ -90,13 +90,13 @@ extern "C" {
 
     /// 校验PIN码。校验成功后，会获得相应的权限，如果PIN码错误，会返回PIN码的重试次数，当重试次数为0时表示PIN码已经锁死
     ///
-    /// [app_handle]		`[IN]`应用句柄
+    /// [app_handle] `[IN]`应用句柄
     ///
-    /// [pin_type]		`[IN]`PIN类型，ADMIN_TYPE=0,USER_TYPE=1
+    /// [pin_type] `[IN]`PIN类型，ADMIN_TYPE=0,USER_TYPE=1
     ///
-    /// [sz_pin]		`[IN]`PIN值
+    /// [sz_pin] `[IN]`PIN值
     ///
-    /// [retry_count]	`[OUT]`出错后返回的重试次数
+    /// [retry_count] `[OUT]`出错后返回的重试次数
     pub fn SKF_VerifyPIN(
         app_handle: HANDLE,
         pin_type: ULONG,
@@ -108,13 +108,13 @@ extern "C" {
     ///
     /// 验证完管理员 PIN才能够解锁用户  PIN 码，如果输入的 管理员 PIN 不正确或者已经锁死，会调用失败，并返回 管理员 PIN 的重试次数。
     ///
-    /// [app_handle]		`[IN]`应用句柄
+    /// [app_handle] `[IN]`应用句柄
     ///
-    /// [sz_admin_pin]	`[IN]`管理员PIN码
+    /// [sz_admin_pin] `[IN]`管理员PIN码
     ///
-    /// [sz_new_user_pin]	`[IN]`新的用户PIN码
+    /// [sz_new_user_pin] `[IN]`新的用户PIN码
     ///
-    /// [retry_count]	`[OUT]`管理员PIN码错误时，返回剩余重试次数
+    /// [retry_count] `[OUT]`管理员PIN码错误时，返回剩余重试次数
     ///
     pub fn SKF_UnblockPIN(
         app_handle: HANDLE,
@@ -125,6 +125,6 @@ extern "C" {
 
     /// 清除应用当前的安全状态
     ///
-    /// [app_handle]	`[IN]`应用句柄
+    /// [app_handle] `[IN]`应用句柄
     pub fn SKF_ClearSecureState(app_handle: HANDLE) -> ULONG;
 }
