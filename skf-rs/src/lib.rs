@@ -2,7 +2,6 @@ mod engine;
 mod error;
 pub mod helper;
 
-use skf_api::native::types::{CHAR, ULONG};
 use std::time::Duration;
 
 pub type Error = error::Error;
