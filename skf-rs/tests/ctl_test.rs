@@ -11,7 +11,7 @@ use skf_rs::helper::describe_result;
 fn enum_device_test() {
     let engine = Engine::new(LibLoader::env_lookup().unwrap());
     let manager = engine.device_manager().unwrap();
-    let ret = manager.enum_device(true);
+    let ret = manager.enumerate_device_name(true);
     println!("result: {:?}", &ret);
     assert!(ret.is_ok());
 }

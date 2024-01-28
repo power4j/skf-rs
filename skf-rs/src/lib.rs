@@ -2,6 +2,7 @@ mod engine;
 mod error;
 pub mod helper;
 
+use skf_api::native::types::{CHAR, ULONG};
 use std::time::Duration;
 
 pub type Error = error::Error;
@@ -94,7 +95,7 @@ pub trait DeviceManager {
     /// Enumerate all devices
     ///
     /// [presented_only] - Enumerate only presented devices,false means list all supported devices by underlying driver
-    fn enum_device(&self, presented_only: bool) -> Result<Vec<String>>;
+    fn enumerate_device_name(&self, presented_only: bool) -> Result<Vec<String>>;
 
     /// Get device state
     ///
@@ -170,9 +171,9 @@ pub struct CreateAppOption {
     pub user_pin_retry_count: u32,
     pub create_file_rights: u32,
 }
-pub trait AppCtl {
+pub trait AppManager {
     ///  Enumerate all apps in the device,return app names
-    fn enum_app(&self) -> Result<Vec<String>>;
+    fn enumerate_app_name(&self) -> Result<Vec<String>>;
 
     /// Create app in the device
     ///
@@ -206,7 +207,18 @@ pub trait DeviceSecurity {
     fn change_device_auth_key(&self, key: &[u8]) -> Result<()>;
 }
 
-pub trait SkfDevice: DeviceCtl + DeviceSecurity + AppCtl {}
+/// Represents a device instance,call `DeviceManager::connect()` or `DeviceManager::connect_selected()` to get one
+/// ## Disconnect
+/// Device instance is disconnected when `Drop`
+pub trait SkfDevice: DeviceCtl + DeviceSecurity + AppManager {}
+
+/// PIN type: Admin
+pub const PIN_TYPE_ADMIN: u8 = 0;
+
+/// PIN type: User
+pub const PIN_TYPE_USER: u8 = 1;
+
+/// PIN information
 pub struct PinInfo {
     pub max_retry_count: u32,
     pub remain_retry_count: u32,
@@ -215,7 +227,7 @@ pub struct PinInfo {
 pub trait AppSecurity {
     /// Lock device for exclusive access
     ///
-    /// [pin_type] - The pin type,`ADMIN_TYPE=0`,`USER_TYPE=1`
+    /// [pin_type] - The pin type, can be `PIN_TYPE_ADMIN` or `PIN_TYPE_USER`
     ///
     /// [old_pin] - The old pin
     ///
@@ -224,21 +236,28 @@ pub trait AppSecurity {
     /// ## specification note
     /// - PIN verification failed: The value of remaining retry count will be returned, `0` means the PIN has been locked
     /// - PIN verification success: `None` will be returned
-    fn change_pin(&self, pin_type: u8, old_pin: &str, new_pin: &str) -> Result<Option<u32>>;
+    ///
+    /// ## Error
+    /// - `Error::PinVerifyFailed` returned when PIN verification failed
+    ///
+    fn change_pin(&self, pin_type: u8, old_pin: &str, new_pin: &str) -> Result<()>;
 
     /// Verify PIN
     ///
-    /// [pin_type] - The pin type,`ADMIN_TYPE=0`,`USER_TYPE=1`
+    /// [pin_type] - The pin type,can be `PIN_TYPE_ADMIN` or `PIN_TYPE_USER`
     ///
     /// [pin] - The pin value
     /// ## specification note
     /// - PIN verification failed: The value of remaining retry count will be returned, `0` means the PIN has been locked
     /// - PIN verification success: `None` will be returned
-    fn verify_pin(&self, pin_type: u8, pin: &str) -> Result<Option<u32>>;
+    ///
+    /// ## Error
+    /// - `Error::PinVerifyFailed` returned when PIN verification failed
+    fn verify_pin(&self, pin_type: u8, pin: &str) -> Result<()>;
 
     /// Get PIN info
     ///
-    /// [pin_type] - The pin type,`ADMIN_TYPE=0`,`USER_TYPE=1`
+    /// [pin_type] - The pin type,can be `PIN_TYPE_ADMIN` or `PIN_TYPE_USER`
     fn pin_info(&self, pin_type: u8) -> Result<PinInfo>;
 
     /// Unlock user PIN
@@ -251,13 +270,102 @@ pub trait AppSecurity {
     /// # specification note
     /// - PIN verification failed: The value of remaining retry count will be returned, `0` means the PIN has been locked
     /// - PIN verification success: `None` will be returned
-    fn unlock_pin(&self, admin_pin: &str, new_pin: &str) -> Result<Option<u32>>;
+    ///
+    /// ## Error
+    /// - `Error::PinVerifyFailed` returned when PIN verification failed
+    fn unblock_pin(&self, admin_pin: &str, new_pin: &str) -> Result<()>;
 
     /// Clear secure state
     fn clear_secure_state(&self) -> Result<()>;
 }
 
-pub trait SkfApp: AppSecurity {}
+/// File permission: no one
+pub const FILE_PERM_NONE: u32 = 0x00000000;
+/// File permission: permit to admin account
+pub const FILE_PERM_ADMIN: u32 = 0x00000001;
+/// File permission: permit to user account
+pub const FILE_PERM_USER: u32 = 0x00000010;
+/// File permission: permit to everyone
+pub const FILE_PERM_EVERYONE: u32 = 0x000000FF;
+#[derive(Debug, Default)]
+pub struct FileAttr {
+    pub file_name: String,
+    pub file_size: u32,
+    pub read_rights: u32,
+    pub write_rights: u32,
+}
 
-pub trait ContainerSecurity {}
-pub trait SkfContainer {}
+pub trait FileManager {
+    ///  Enumerate all file in the app,return file names
+    fn enumerate_file_name(&self) -> Result<Vec<String>>;
+
+    /// Create file in the app
+    ///
+    ///[attr] - The file attribute
+    ///
+    /// ## file name
+    ///
+    /// The file name,should less than 32 bytes, It will be truncated if it is too long
+    fn create_file(&self, attr: &FileAttr) -> Result<()>;
+
+    /// Delete file from app
+    ///
+    /// [name] - The file name to delete
+    fn delete_file(&self, name: &str) -> Result<()>;
+    /// Read data from file
+    ///
+    /// [name] - The file name
+    ///
+    /// [offset] - File offset to read
+    ///
+    /// [size] - Read size,in bytes
+    ///
+    /// ## specification note
+    /// actual read size may be less than [size]
+    fn read_file(&self, name: &str, offset: u32, size: u32) -> Result<Vec<u8>>;
+    /// Write date to file
+    ///
+    /// [name] - The file name
+    ///
+    /// [offset] - File offset to write
+    ///
+    /// [data] - The data to write
+    fn write_file(&self, name: &str, offset: u32, data: &[u8]) -> Result<()>;
+    /// Get file attribute info
+    ///
+    /// [name] - The file name
+    fn get_file_info(&self, name: &str) -> Result<FileAttr>;
+}
+
+pub trait ContainerManager {
+    ///  Enumerate all apps in the app,return container names
+    fn enumerate_container_name(&self) -> Result<Vec<String>>;
+
+    /// Create container in the app
+    ///
+    /// [name] - The container name
+    fn create_container(&self, name: &str) -> Result<Box<dyn SkfApp>>;
+
+    /// Open container by  name
+    ///
+    /// [name] - The container name
+    fn open_container(&self, name: &str) -> Result<Box<dyn SkfApp>>;
+    /// Delete container by name
+    ///
+    /// [name] - The container name
+    fn delete_container(&self, name: &str) -> Result<()>;
+}
+
+/// Represents an Application instance
+/// ## Close
+/// Application instance is closed when `Drop`
+pub trait SkfApp: AppSecurity + FileManager + ContainerManager {}
+
+/// Represents a Container instance
+/// ## Close
+/// Container instance is closed when `Drop`
+pub trait SkfContainer {
+    fn get_type(&self) -> Result<u8>;
+    fn import_certificate(&self, signer: bool, data: &[u8]) -> Result<()>;
+    fn export_certificate(&self, signer: bool) -> Result<Vec<u8>>;
+}

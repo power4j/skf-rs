@@ -91,7 +91,62 @@ pub(crate) mod device_fn {
     pub(super) type SKF_DeleteApplication =
         SymbolBundle<unsafe extern "C" fn(HANDLE, LPSTR) -> ULONG>;
 }
+#[allow(non_camel_case_types)]
+pub(crate) mod app_fn {
+    use crate::engine::symbol::SymbolBundle;
+    use skf_api::native::types::{FileAttribute, BOOL, BYTE, CHAR, HANDLE, LPSTR, ULONG};
 
+    pub(super) type SKF_CloseApplication = SymbolBundle<unsafe extern "C" fn(HANDLE) -> ULONG>;
+    pub(super) type SKF_CreateFile =
+        SymbolBundle<unsafe extern "C" fn(HANDLE, LPSTR, ULONG, ULONG, ULONG) -> ULONG>;
+    pub(super) type SKF_DeleteFile = SymbolBundle<unsafe extern "C" fn(HANDLE, LPSTR) -> ULONG>;
+    pub(super) type SKF_EnumFiles =
+        SymbolBundle<unsafe extern "C" fn(HANDLE, *mut CHAR, *mut ULONG) -> ULONG>;
+    pub(super) type SKF_GetFileInfo =
+        SymbolBundle<unsafe extern "C" fn(HANDLE, LPSTR, *mut FileAttribute) -> ULONG>;
+    pub(super) type SKF_ReadFile = SymbolBundle<
+        unsafe extern "C" fn(HANDLE, LPSTR, ULONG, ULONG, *mut BYTE, *mut ULONG) -> ULONG,
+    >;
+    pub(super) type SKF_WriteFile =
+        SymbolBundle<unsafe extern "C" fn(HANDLE, LPSTR, ULONG, *const BYTE, ULONG) -> ULONG>;
+
+    pub(super) type SKF_ChangePIN =
+        SymbolBundle<unsafe extern "C" fn(HANDLE, ULONG, LPSTR, LPSTR, *mut ULONG) -> ULONG>;
+
+    pub(super) type SKF_GetPINInfo = SymbolBundle<
+        unsafe extern "C" fn(HANDLE, ULONG, *mut ULONG, *mut ULONG, *mut BOOL) -> ULONG,
+    >;
+
+    pub(super) type SKF_VerifyPIN =
+        SymbolBundle<unsafe extern "C" fn(HANDLE, ULONG, LPSTR, *mut ULONG) -> ULONG>;
+
+    pub(super) type SKF_UnblockPIN =
+        SymbolBundle<unsafe extern "C" fn(HANDLE, LPSTR, LPSTR, *mut ULONG) -> ULONG>;
+
+    pub(super) type SKF_ClearSecureState = SymbolBundle<unsafe extern "C" fn(HANDLE) -> ULONG>;
+}
+
+#[allow(non_camel_case_types)]
+pub(crate) mod container_fn {
+    use crate::engine::symbol::SymbolBundle;
+    use skf_api::native::types::{BOOL, BYTE, CHAR, HANDLE, LPSTR, ULONG};
+
+    pub(super) type SKF_CreateContainer =
+        SymbolBundle<unsafe extern "C" fn(HANDLE, LPSTR, *mut HANDLE) -> ULONG>;
+    pub(super) type SKF_DeleteContainer =
+        SymbolBundle<unsafe extern "C" fn(HANDLE, LPSTR) -> ULONG>;
+    pub(super) type SKF_OpenContainer =
+        SymbolBundle<unsafe extern "C" fn(HANDLE, LPSTR, *mut HANDLE) -> ULONG>;
+    pub(super) type SKF_EnumContainer =
+        SymbolBundle<unsafe extern "C" fn(HANDLE, *mut CHAR, *mut ULONG) -> ULONG>;
+    pub(super) type SKF_CloseContainer = SymbolBundle<unsafe extern "C" fn(HANDLE) -> ULONG>;
+    pub(super) type SKF_GetContainerType =
+        SymbolBundle<unsafe extern "C" fn(HANDLE, *mut ULONG) -> ULONG>;
+    pub(super) type SKF_ImportCertificate =
+        SymbolBundle<unsafe extern "C" fn(HANDLE, BOOL, *const BYTE, ULONG) -> ULONG>;
+    pub(super) type SKF_ExportCertificate =
+        SymbolBundle<unsafe extern "C" fn(HANDLE, BOOL, *mut BYTE, *mut ULONG) -> ULONG>;
+}
 #[derive(Default)]
 pub(crate) struct ModMag {
     pub enum_dev: Option<device_fn::SKF_EnumDev>,
@@ -151,6 +206,7 @@ impl ModDev {
         let app_open = Some(unsafe { SymbolBundle::new(lib, b"SKF_OpenApplication\0")? });
         let app_delete = Some(unsafe { SymbolBundle::new(lib, b"SKF_DeleteApplication\0")? });
         let app_enum = Some(unsafe { SymbolBundle::new(lib, b"SKF_EnumApplication\0")? });
+
         let holder = Self {
             dev_set_label,
             dev_dis_connect,
@@ -170,8 +226,67 @@ impl ModDev {
 }
 
 #[derive(Default)]
-pub(crate) struct ModApp {}
+pub(crate) struct ModApp {
+    pub app_close: Option<app_fn::SKF_CloseApplication>,
+    pub app_clear_secure_state: Option<app_fn::SKF_ClearSecureState>,
+    pub file_get_list: Option<app_fn::SKF_EnumFiles>,
+    pub file_create: Option<app_fn::SKF_CreateFile>,
+    pub file_delete: Option<app_fn::SKF_DeleteFile>,
+    pub file_get_info: Option<app_fn::SKF_GetFileInfo>,
+    pub file_read: Option<app_fn::SKF_ReadFile>,
+    pub file_write: Option<app_fn::SKF_WriteFile>,
+    pub container_get_list: Option<container_fn::SKF_EnumContainer>,
+    pub container_create: Option<container_fn::SKF_CreateContainer>,
+    pub container_delete: Option<container_fn::SKF_DeleteContainer>,
+    pub container_open: Option<container_fn::SKF_OpenContainer>,
+    pub pin_change: Option<app_fn::SKF_ChangePIN>,
+    pub pin_get_info: Option<app_fn::SKF_GetPINInfo>,
+    pub pin_verify: Option<app_fn::SKF_VerifyPIN>,
+    pub pin_unblock: Option<app_fn::SKF_UnblockPIN>,
+}
 
+impl ModApp {
+    pub fn load_symbols(lib: &Arc<Library>) -> crate::Result<Self> {
+        let app_close = Some(unsafe { SymbolBundle::new(lib, b"SKF_CloseApplication\0")? });
+        let app_clear_secure_state =
+            Some(unsafe { SymbolBundle::new(lib, b"SKF_ClearSecureState\0")? });
+        let file_get_list = Some(unsafe { SymbolBundle::new(lib, b"SKF_EnumFiles\0")? });
+        let file_create = Some(unsafe { SymbolBundle::new(lib, b"SKF_CreateFile\0")? });
+        let file_delete = Some(unsafe { SymbolBundle::new(lib, b"SKF_DeleteFile\0")? });
+        let file_get_info = Some(unsafe { SymbolBundle::new(lib, b"SKF_GetFileInfo\0")? });
+        let file_read = Some(unsafe { SymbolBundle::new(lib, b"SKF_ReadFile\0")? });
+        let file_write = Some(unsafe { SymbolBundle::new(lib, b"SKF_WriteFile\0")? });
+        let container_get_list = Some(unsafe { SymbolBundle::new(lib, b"SKF_EnumContainer\0")? });
+        let container_create = Some(unsafe { SymbolBundle::new(lib, b"SKF_CreateContainer\0")? });
+        let container_delete = Some(unsafe { SymbolBundle::new(lib, b"SKF_DeleteContainer\0")? });
+        let container_open = Some(unsafe { SymbolBundle::new(lib, b"SKF_OpenContainer\0")? });
+
+        let pin_change = Some(unsafe { SymbolBundle::new(lib, b"SKF_ChangePIN\0")? });
+        let pin_get_info = Some(unsafe { SymbolBundle::new(lib, b"SKF_GetPINInfo\0")? });
+        let pin_verify = Some(unsafe { SymbolBundle::new(lib, b"SKF_VerifyPIN\0")? });
+        let pin_unblock = Some(unsafe { SymbolBundle::new(lib, b"SKF_UnblockPIN\0")? });
+
+        let holder = Self {
+            app_close,
+            file_get_list,
+            file_create,
+            file_delete,
+            file_get_info,
+            file_read,
+            file_write,
+            container_get_list,
+            container_create,
+            container_delete,
+            container_open,
+            app_clear_secure_state,
+            pin_change,
+            pin_get_info,
+            pin_verify,
+            pin_unblock,
+        };
+        Ok(holder)
+    }
+}
 #[cfg(test)]
 mod test {
     use super::*;

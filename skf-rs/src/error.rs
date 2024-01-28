@@ -9,6 +9,8 @@ pub enum Error {
     #[error(transparent)]
     Skf(#[from] SkfErr),
     #[error(transparent)]
+    PinVerifyFail(#[from] SkfPinVerifyError),
+    #[error(transparent)]
     Other(#[from] anyhow::Error),
 }
 
@@ -67,6 +69,34 @@ impl Debug for SkfErr {
             f,
             "[{:#010x}({}) ] - {}",
             self.code, self.code, &self.message
+        )
+    }
+}
+
+#[derive(thiserror::Error, Debug)]
+pub struct SkfPinVerifyError {
+    pub remaining_retry_count: u32,
+    pub message: String,
+    #[source]
+    source: SkfErr,
+}
+
+impl SkfPinVerifyError {
+    pub fn new(count: u32, msg: impl AsRef<str>, source: SkfErr) -> Self {
+        Self {
+            remaining_retry_count: count,
+            message: msg.as_ref().to_string(),
+            source,
+        }
+    }
+}
+
+impl Display for SkfPinVerifyError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}(retry count: {})",
+            self.message, self.remaining_retry_count
         )
     }
 }

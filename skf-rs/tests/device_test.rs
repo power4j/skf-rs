@@ -1,4 +1,4 @@
-use skf_rs::{CreateAppOption, LibLoader};
+use skf_rs::CreateAppOption;
 use std::time::Duration;
 mod common;
 use common::use_first_device;
@@ -56,7 +56,7 @@ fn invoke_change_auth_key() {
 #[ignore]
 fn invoke_app_ctl() {
     let dev = use_first_device().unwrap();
-    let ret = dev.enum_app();
+    let ret = dev.enumerate_app_name();
     println!("result of enum_app : {:?}", &ret);
     assert!(ret.is_ok());
 

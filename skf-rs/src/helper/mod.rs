@@ -1,5 +1,6 @@
 pub mod mem {
-    use std::ffi::CStr;
+    use std::cmp::min;
+    use std::ffi::{CStr, CString};
     use std::slice;
 
     /// Returns the position of the first null byte
@@ -150,6 +151,54 @@ pub mod mem {
             .map(|s| s.to_string_lossy().to_string())
             .collect()
     }
+
+    /// Write string to buffer
+    ///
+    /// [src] - The string to write,if too long, it will be truncated
+    ///
+    /// [buffer] - The buffer to write to,at least one byte to fill with null byte
+    ///
+    /// ## Memory copy
+    ///
+    /// - if the string is too long,it will be truncated,and the last byte will be set to null byte
+    /// - if the string is smaller than the buffer size,it will be filled with null byte
+    ///
+    /// ## example
+    /// ```
+    /// use skf_rs::helper::mem::write_cstr;
+    ///
+    /// let mut buffer = [0u8; 11];
+    /// unsafe {
+    ///     write_cstr("Hello World", &mut buffer);
+    ///}
+    ///assert_eq!(b"Hello Worl\0", &buffer);
+    ///```
+    pub unsafe fn write_cstr(src: impl AsRef<str>, buffer: &mut [u8]) {
+        let src = src.as_ref().as_bytes();
+        let len = min(src.len(), buffer.len());
+        debug_assert!(len >= 0);
+        unsafe {
+            std::ptr::copy(src.as_ptr(), buffer.as_mut_ptr(), len);
+        }
+        if len < buffer.len() {
+            buffer[len] = 0;
+        } else {
+            buffer[len - 1] = 0;
+        }
+    }
+
+    /// Write string to buffer
+    ///
+    /// [src] - The string to write
+    ///
+    /// [buffer_ptr] - The buffer to write to
+    ///
+    /// [buffer_len] - The length of the buffer
+    pub unsafe fn write_cstr_ptr(src: impl AsRef<str>, buffer_ptr: *mut u8, buffer_len: usize) {
+        let mut bytes = slice::from_raw_parts(buffer_ptr, buffer_len);
+        write_cstr(src, &mut bytes);
+    }
+
     #[cfg(test)]
     mod tests {
         use super::*;
@@ -170,6 +219,27 @@ pub mod mem {
                     *list.get(1).unwrap()
                 );
             }
+        }
+        #[test]
+        fn write_cstr_test() {
+            let input = "Hello World";
+            let mut buffer = [0u8; 12];
+            unsafe {
+                write_cstr(input, &mut buffer);
+            }
+            assert_eq!(b"Hello World\0", &buffer);
+
+            let mut buffer = [0u8; 11];
+            unsafe {
+                write_cstr(input, &mut buffer);
+            }
+            assert_eq!(b"Hello Worl\0", &buffer);
+
+            let mut buffer = [0u8; 1];
+            unsafe {
+                write_cstr(input, &mut buffer);
+            }
+            assert_eq!(b"\0", &buffer);
         }
     }
 }

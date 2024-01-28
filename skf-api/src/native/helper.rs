@@ -1,4 +1,4 @@
-use crate::native::types::{DeviceInfo, Version};
+use crate::native::types::{DeviceInfo, FileAttribute, Version};
 
 impl Default for Version {
     fn default() -> Self {
@@ -25,6 +25,17 @@ impl Default for DeviceInfo {
             max_ecc_buffer_size: 0,
             max_buffer_size: 0,
             reserved: [0; 64],
+        }
+    }
+}
+
+impl Default for FileAttribute {
+    fn default() -> Self {
+        Self {
+            file_name: [0; 32],
+            file_size: 0,
+            read_rights: 0,
+            write_rights: 0,
         }
     }
 }

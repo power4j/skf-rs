@@ -103,7 +103,7 @@ extern "C" {
     ///
     /// [read_rights]		`[IN]`文件读权限
     ///
-    /// [write_rights]		`[IN]`文件写权限
+    /// [write_rights]		`[IN]`文件写权限,取值为 :`SECURE_NEVER_ACCOUNT`, `SECURE_ADM_ACCOUNT`, `SECURE_USER_ACCOUNT`, `SECURE_EVERYONE_ACCOUNT`
     pub fn SKF_CreateFile(
         app_handle: HANDLE,
         sz_file_name: LPSTR,

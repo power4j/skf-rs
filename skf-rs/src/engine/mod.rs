@@ -3,11 +3,12 @@ use libloading::Library;
 use std::env;
 use std::sync::Arc;
 
-mod skf_app;
-pub(crate) mod skf_ctl;
-pub(crate) mod skf_dev;
+mod app;
+pub(crate) mod device;
+pub(crate) mod manager;
 pub(crate) mod symbol;
 
+/// Wrapper to load skf library
 pub struct Engine {
     pub(crate) lib: Arc<Library>,
 }
@@ -28,13 +29,13 @@ impl Engine {
 
     /// Get device manager
     pub fn device_manager(&self) -> Result<Box<dyn DeviceManager + Send + Sync>> {
-        let ctl = skf_ctl::SkfCtlImpl::new(&self.lib)?;
+        let ctl = manager::SkfCtlImpl::new(&self.lib)?;
         Ok(Box::new(ctl))
     }
 
     /// Get device manager
     pub fn device_manager_arc(&self) -> Result<Arc<dyn DeviceManager + Send + Sync>> {
-        let ctl = skf_ctl::SkfCtlImpl::new(&self.lib)?;
+        let ctl = manager::SkfCtlImpl::new(&self.lib)?;
         Ok(Arc::new(ctl))
     }
 }

@@ -1,4 +1,4 @@
-use crate::engine::skf_dev::SkfDeviceImpl;
+use crate::engine::device::SkfDeviceImpl;
 use crate::engine::symbol::ModMag;
 use crate::error::{InvalidArgumentError, SkfErr};
 use crate::helper::{mem, param};
@@ -34,7 +34,7 @@ impl Debug for SkfCtlImpl {
 
 impl DeviceManager for SkfCtlImpl {
     #[instrument]
-    fn enum_device(&self, presented_only: bool) -> Result<Vec<String>> {
+    fn enumerate_device_name(&self, presented_only: bool) -> Result<Vec<String>> {
         let func = self.symbols.enum_dev.as_ref().expect("Symbol not load");
         let mut len: ULONG = 0;
         let ret = unsafe { func(presented_only as BOOL, std::ptr::null_mut(), &mut len) };
@@ -137,7 +137,7 @@ impl DeviceManager for SkfCtlImpl {
         &self,
         selector: fn(Vec<&str>) -> Option<&str>,
     ) -> Result<Option<Box<dyn SkfDevice>>> {
-        let list = self.enum_device(true)?;
+        let list = self.enumerate_device_name(true)?;
         if list.is_empty() {
             Ok(None)
         } else {

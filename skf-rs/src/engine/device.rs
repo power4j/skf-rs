@@ -175,7 +175,7 @@ impl DeviceCtl for SkfDeviceImpl {
 
 impl AppManager for SkfDeviceImpl {
     #[instrument]
-    fn enumerate_app(&self) -> Result<Vec<String>> {
+    fn enumerate_app_name(&self) -> Result<Vec<String>> {
         let func = self.symbols.app_enum.as_ref().expect("Symbol not load");
         let mut len: ULONG = 0;
         let ret = unsafe { func(self.handle.clone(), std::ptr::null_mut(), &mut len) };
@@ -242,7 +242,6 @@ impl AppManager for SkfDeviceImpl {
     fn delete_app(&self, name: &str) -> Result<()> {
         let func = self.symbols.app_delete.as_ref().expect("Symbol not load");
         let name = param::as_cstring("name", name)?;
-        let mut handle: HANDLE = std::ptr::null_mut();
         let ret = unsafe { func(self.handle.clone(), name.as_ptr() as LPSTR) };
         trace!("[SKF_DeleteApplication]: ret = {}", ret);
         if ret != SAR_OK {
