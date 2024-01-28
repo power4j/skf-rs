@@ -1,5 +1,5 @@
 use crate::engine::skf_dev::SkfDeviceImpl;
-use crate::engine::symbol::ModCtl;
+use crate::engine::symbol::ModMag;
 use crate::error::{InvalidArgumentError, SkfErr};
 use crate::helper::{mem, param};
 use crate::{DeviceManager, PluginEvent, SkfDevice};
@@ -12,7 +12,7 @@ use tracing::{instrument, trace};
 
 pub(crate) struct SkfCtlImpl {
     lib: Arc<libloading::Library>,
-    symbols: ModCtl,
+    symbols: ModMag,
 }
 
 impl SkfCtlImpl {
@@ -21,7 +21,7 @@ impl SkfCtlImpl {
     /// [lib] - The library handle
     pub fn new(lib: &Arc<libloading::Library>) -> Result<Self> {
         let lc = Arc::clone(lib);
-        let symbols = ModCtl::load_symbols(lib)?;
+        let symbols = ModMag::load_symbols(lib)?;
         Ok(Self { lib: lc, symbols })
     }
 }

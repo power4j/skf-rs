@@ -93,7 +93,7 @@ pub(crate) mod device_fn {
 }
 
 #[derive(Default)]
-pub(crate) struct ModCtl {
+pub(crate) struct ModMag {
     pub enum_dev: Option<device_fn::SKF_EnumDev>,
     pub wait_plug_event: Option<device_fn::SKF_WaitForDevEvent>,
     pub cancel_wait_plug_event: Option<device_fn::SKF_CancelWaitForDevEvent>,
@@ -101,7 +101,7 @@ pub(crate) struct ModCtl {
     pub connect_dev: Option<device_fn::SKF_ConnectDev>,
 }
 
-impl ModCtl {
+impl ModMag {
     pub fn load_symbols(lib: &Arc<Library>) -> crate::Result<Self> {
         let enum_dev = Some(unsafe { SymbolBundle::new(lib, b"SKF_EnumDev\0")? });
         let wait_plug_event = Some(unsafe { SymbolBundle::new(lib, b"SKF_WaitForDevEvent\0")? });
@@ -181,7 +181,7 @@ mod test {
     #[ignore]
     fn sym_mod_ctl_test() {
         let lib = Arc::new(LibLoader::env_lookup().unwrap());
-        assert!(ModCtl::load_symbols(&lib).is_ok());
+        assert!(ModMag::load_symbols(&lib).is_ok());
     }
 
     #[test]
