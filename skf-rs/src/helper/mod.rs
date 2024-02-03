@@ -258,7 +258,7 @@ pub mod param {
         let value = CString::new(param_value.as_ref()).map_err(|e| {
             InvalidArgumentError::new(
                 format!("parameter '{}' is invalid", param_name.as_ref()),
-                anyhow::Error::new(e),
+                Some(anyhow::Error::new(e)),
             )
         })?;
         Ok(value)

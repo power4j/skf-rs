@@ -2,6 +2,7 @@ mod engine;
 mod error;
 pub mod helper;
 
+use skf_api::native::types::{HANDLE, ULONG};
 use std::time::Duration;
 
 pub type Error = error::Error;
@@ -159,6 +160,13 @@ pub trait DeviceCtl {
     ///
     /// This function is for testing purpose
     fn transmit(&self, command: &[u8], recv_capacity: u32) -> Result<Vec<u8>>;
+
+    /// Import plain symmetric key(AKA session key)
+    ///
+    /// [alg_id] - The algorithm id,see [CryptoAlgorithm]
+    ///
+    /// [key] - The symmetric key
+    fn set_symmetric_key(&self, alg_id: u32, key: &[u8]) -> Result<Box<dyn ManagedKey>>;
 }
 
 #[derive(Debug, Default)]
@@ -367,4 +375,54 @@ pub trait SkfContainer {
     fn get_type(&self) -> Result<u8>;
     fn import_certificate(&self, signer: bool, data: &[u8]) -> Result<()>;
     fn export_certificate(&self, signer: bool) -> Result<Vec<u8>>;
+}
+
+#[derive(Debug, Default)]
+pub struct BlockCipherParameter {
+    /// IV data,max 32 bytes,Empty means no IV
+    pub iv: Vec<u8>,
+    /// padding type,
+    /// - 0: None
+    /// - 1: PKCS7
+    pub padding_type: u8,
+    pub feed_bit_len: u32,
+}
+
+pub trait ManagedKey: AsRef<HANDLE> {}
+pub trait SkfCrypto {
+    /// Initialize encryption
+    ///
+    /// [key] - The key object
+    ///
+    /// [param] - The encryption parameter
+    fn encrypt_init(&self, key: &dyn ManagedKey, param: &BlockCipherParameter) -> Result<()>;
+
+    /// Encrypt data
+    ///
+    /// [data] - The data to encrypt
+    ///
+    /// [buffer_size] - The buffer size to receive encrypted data,it depends on the encryption parameter passed by `encrypt_init` and crypto algorithm
+    ///
+    /// see `SKF_Encrypt` for more details
+    fn encrypt(&self, key: &dyn ManagedKey, data: &[u8], buffer_size: usize) -> Result<Vec<u8>>;
+
+    /// Initialize decryption
+    ///
+    /// [key] - The key object
+    ///
+    /// [param] - The decryption parameter
+    fn decrypt_init(&self, key: &dyn ManagedKey, param: &BlockCipherParameter) -> Result<()>;
+
+    /// Decrypt data
+    ///
+    /// [data] - The data to decrypt
+    ///
+    /// [buffer_size] - The buffer size to receive decrypted data,it depends on the decryption parameter passed by `decrypt_init` and crypto algorithm
+    ///
+    /// see `SKF_Decrypt` for more details
+    fn decrypt(&self, key: &dyn ManagedKey, data: &[u8], buffer_size: usize) -> Result<Vec<u8>>;
+}
+
+pub enum CryptoAlgorithm {
+    SgdSms4Ecb,
 }

@@ -18,11 +18,11 @@ pub enum Error {
 pub struct InvalidArgumentError {
     msg: String,
     #[source]
-    source: anyhow::Error,
+    source: Option<anyhow::Error>,
 }
 
 impl InvalidArgumentError {
-    pub fn new(msg: impl AsRef<str>, source: anyhow::Error) -> Self {
+    pub fn new(msg: impl AsRef<str>, source: Option<anyhow::Error>) -> Self {
         Self {
             msg: msg.as_ref().to_string(),
             source,

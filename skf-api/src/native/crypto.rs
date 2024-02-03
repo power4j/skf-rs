@@ -49,9 +49,9 @@ extern "C" {
     /// [device_handle] `[IN]`设备句柄
     pub fn SKF_GenRandom(device_handle: HANDLE, data: *mut BYTE, len: ULONG) -> ULONG;
 
-    /// 设置明文对称密钥，返回密钥句柄
+    /// 明文导入会话密钥，返回密钥句柄
     ///
-    /// [container_handle] `[IN]`容器句柄
+    /// [device_handle] `[IN]`设备句柄
     ///
     /// [key_data] `[IN]`指向会话密钥值的缓冲区
     ///
@@ -59,7 +59,7 @@ extern "C" {
     ///
     /// [key_handle] `[OUT]`返回会话密钥句柄
     pub fn SKF_SetSymmKey(
-        container_handle: HANDLE,
+        device_handle: HANDLE,
         key_data: *const BYTE,
         alg_id: ULONG,
         key_handle: *mut HANDLE,
@@ -86,7 +86,7 @@ extern "C" {
     /// [encrypted_len] `[IN,OUT]`输入，给出的缓冲区大小；输出，返回加密后的数据
     /// ## 注意
     /// - `SKF_Encrypt`只对单个分组数据进行加密，在调用`SKF_Encrypt`之前，必须调用`SKF_EncryptInit`初始化加密操作。
-    /// - `SKF_Encypt`等价于先调用`SKF_EncryptUpdate`再调用`SKF_EncryptFinal`。
+    /// - `SKF_Encrypt`等价于先调用`SKF_EncryptUpdate`再调用`SKF_EncryptFinal`。
     ///
     /// ## 返回值
     /// - 成功: `SAR_OK`
@@ -134,5 +134,10 @@ extern "C" {
     /// - 再调用SKF_EncryptUpdate对多个分组数据进行加密
     /// - 最后调用SKF_EncryptFinal结束多个分组数据的加密
     pub fn SKF_EncryptFinal(key_handle: HANDLE, data: *mut BYTE, data_len: *mut ULONG) -> ULONG;
+
+    /// 关闭会话密钥、杂凑、消息认证码句柄
+    ///
+    /// [key_handle] `[IN]`密钥句柄
+    pub fn SKF_CloseHandle(key_handle: HANDLE) -> ULONG;
 
 }

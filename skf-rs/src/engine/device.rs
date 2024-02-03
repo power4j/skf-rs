@@ -1,9 +1,10 @@
+use crate::engine::crypto::ManagedKeyImpl;
 use crate::engine::symbol::ModDev;
 use crate::error::SkfErr;
 use crate::helper::{mem, param};
 use crate::{
-    AppManager, CreateAppOption, DeviceCtl, DeviceInformation, DeviceSecurity, SkfApp, SkfDevice,
-    Version,
+    AppManager, CreateAppOption, DeviceCtl, DeviceInformation, DeviceSecurity, ManagedKey, SkfApp,
+    SkfDevice, Version,
 };
 use crate::{Error, Result};
 use skf_api::native::error::SAR_OK;
@@ -37,6 +38,7 @@ impl SkfDeviceImpl {
         })
     }
 
+    #[instrument]
     fn disconnect(&mut self) -> Result<()> {
         if let Some(ref func) = self.symbols.dev_dis_connect {
             let ret = unsafe { func(self.handle.clone()) };
@@ -170,6 +172,29 @@ impl DeviceCtl for SkfDeviceImpl {
         trace!("[SKF_Transmit]: output len = {}", len);
         unsafe { buffer.set_len(len as usize) };
         Ok(buffer)
+    }
+
+    fn set_symmetric_key(&self, alg_id: u32, key: &[u8]) -> Result<Box<dyn ManagedKey>> {
+        let func = self
+            .symbols
+            .sym_key_import
+            .as_ref()
+            .expect("Symbol not load");
+        let mut handle: HANDLE = std::ptr::null_mut();
+        let ret = unsafe {
+            func(
+                self.handle.clone(),
+                key.as_ptr() as *const BYTE,
+                alg_id,
+                &mut handle,
+            )
+        };
+        trace!("[SKF_SetSymmKey]: ret = {}", ret);
+        if ret != SAR_OK {
+            return Err(Error::Skf(SkfErr::with_default_msg(ret)));
+        }
+        let managed_key = ManagedKeyImpl::try_new(handle, &self.lib)?;
+        Ok(Box::new(managed_key))
     }
 }
 

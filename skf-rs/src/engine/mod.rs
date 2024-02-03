@@ -1,9 +1,10 @@
-use crate::{DeviceManager, Result};
+use crate::{DeviceManager, Result, SkfCrypto};
 use libloading::Library;
 use std::env;
 use std::sync::Arc;
 
-mod app;
+pub(crate) mod app;
+pub(crate) mod crypto;
 pub(crate) mod device;
 pub(crate) mod manager;
 pub(crate) mod symbol;
@@ -29,14 +30,20 @@ impl Engine {
 
     /// Get device manager
     pub fn device_manager(&self) -> Result<Box<dyn DeviceManager + Send + Sync>> {
-        let ctl = manager::SkfCtlImpl::new(&self.lib)?;
+        let ctl = manager::ManagerImpl::new(&self.lib)?;
         Ok(Box::new(ctl))
     }
 
     /// Get device manager
     pub fn device_manager_arc(&self) -> Result<Arc<dyn DeviceManager + Send + Sync>> {
-        let ctl = manager::SkfCtlImpl::new(&self.lib)?;
+        let ctl = manager::ManagerImpl::new(&self.lib)?;
         Ok(Arc::new(ctl))
+    }
+
+    /// Get crypto service
+    pub fn crypto(&self) -> Result<Box<dyn SkfCrypto + Send + Sync>> {
+        let crypto = crypto::SkfCryptoImpl::new(&self.lib)?;
+        Ok(Box::new(crypto))
     }
 }
 

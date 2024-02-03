@@ -147,6 +147,22 @@ pub(crate) mod container_fn {
     pub(super) type SKF_ExportCertificate =
         SymbolBundle<unsafe extern "C" fn(HANDLE, BOOL, *mut BYTE, *mut ULONG) -> ULONG>;
 }
+
+#[allow(non_camel_case_types)]
+pub(crate) mod crypto_fn {
+    use crate::engine::symbol::SymbolBundle;
+    use skf_api::native::types::{BlockCipherParam, BYTE, HANDLE, ULONG};
+
+    pub(crate) type SKF_CloseHandle = SymbolBundle<unsafe extern "C" fn(HANDLE) -> ULONG>;
+    pub(super) type SKF_SetSymmKey =
+        SymbolBundle<unsafe extern "C" fn(HANDLE, *const BYTE, ULONG, *mut HANDLE) -> ULONG>;
+    pub(super) type SKF_EncryptInit =
+        SymbolBundle<unsafe extern "C" fn(HANDLE, BlockCipherParam) -> ULONG>;
+    pub(super) type SKF_Encrypt = SymbolBundle<
+        unsafe extern "C" fn(HANDLE, *const BYTE, ULONG, *mut BYTE, *mut ULONG) -> ULONG,
+    >;
+}
+
 #[derive(Default)]
 pub(crate) struct ModMag {
     pub enum_dev: Option<device_fn::SKF_EnumDev>,
@@ -189,6 +205,7 @@ pub(crate) struct ModDev {
     pub app_open: Option<device_fn::SKF_OpenApplication>,
     pub app_delete: Option<device_fn::SKF_DeleteApplication>,
     pub app_enum: Option<device_fn::SKF_EnumApplication>,
+    pub sym_key_import: Option<crypto_fn::SKF_SetSymmKey>,
 }
 
 impl ModDev {
@@ -206,6 +223,7 @@ impl ModDev {
         let app_open = Some(unsafe { SymbolBundle::new(lib, b"SKF_OpenApplication\0")? });
         let app_delete = Some(unsafe { SymbolBundle::new(lib, b"SKF_DeleteApplication\0")? });
         let app_enum = Some(unsafe { SymbolBundle::new(lib, b"SKF_EnumApplication\0")? });
+        let sym_key_import = Some(unsafe { SymbolBundle::new(lib, b"SKF_SetSymmKey\0")? });
 
         let holder = Self {
             dev_set_label,
@@ -220,6 +238,7 @@ impl ModDev {
             app_open,
             app_delete,
             app_enum,
+            sym_key_import,
         };
         Ok(holder)
     }
@@ -283,6 +302,24 @@ impl ModApp {
             pin_get_info,
             pin_verify,
             pin_unblock,
+        };
+        Ok(holder)
+    }
+}
+
+#[derive(Default)]
+pub(crate) struct ModCrypto {
+    pub encrypt_init: Option<crypto_fn::SKF_EncryptInit>,
+    pub encrypt: Option<crypto_fn::SKF_Encrypt>,
+}
+
+impl ModCrypto {
+    pub fn load_symbols(lib: &Arc<Library>) -> crate::Result<Self> {
+        let encrypt_init = Some(unsafe { SymbolBundle::new(lib, b"SKF_EncryptInit\0")? });
+        let encrypt = Some(unsafe { SymbolBundle::new(lib, b"SKF_Encrypt\0")? });
+        let holder = Self {
+            encrypt_init,
+            encrypt,
         };
         Ok(holder)
     }

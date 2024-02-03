@@ -10,12 +10,12 @@ use std::fmt::Debug;
 use std::sync::Arc;
 use tracing::{instrument, trace};
 
-pub(crate) struct SkfCtlImpl {
+pub(crate) struct ManagerImpl {
     lib: Arc<libloading::Library>,
     symbols: ModMag,
 }
 
-impl SkfCtlImpl {
+impl ManagerImpl {
     /// Initialize
     ///
     /// [lib] - The library handle
@@ -26,13 +26,13 @@ impl SkfCtlImpl {
     }
 }
 
-impl Debug for SkfCtlImpl {
+impl Debug for ManagerImpl {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "SkfCtlImpl")
+        write!(f, "ManagerImpl")
     }
 }
 
-impl DeviceManager for SkfCtlImpl {
+impl DeviceManager for ManagerImpl {
     #[instrument]
     fn enumerate_device_name(&self, presented_only: bool) -> Result<Vec<String>> {
         let func = self.symbols.enum_dev.as_ref().expect("Symbol not load");

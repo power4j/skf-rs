@@ -1,5 +1,5 @@
 use skf_rs::{
-    CreateAppOption, DeviceManager, Engine, LibLoader, Result, SkfApp, SkfDevice,
+    CreateAppOption, DeviceManager, Engine, LibLoader, Result, SkfApp, SkfCrypto, SkfDevice,
     FILE_PERM_EVERYONE,
 };
 
@@ -11,14 +11,22 @@ pub fn chose_first(list: Vec<&str>) -> Option<&str> {
     Some(list[0])
 }
 
-pub fn device_manager() -> Result<Box<dyn DeviceManager + Send + Sync>> {
-    let engine = Engine::new(LibLoader::env_lookup().unwrap());
-    engine.device_manager()
+pub fn get_engine() -> Result<Engine> {
+    let lib = LibLoader::env_lookup().expect("SKF Lib not load");
+    let engine = Engine::new(lib);
+    Ok(engine)
 }
-
+pub fn device_manager() -> Result<Box<dyn DeviceManager + Send + Sync>> {
+    get_engine()?.device_manager()
+}
+pub fn use_crypto() -> Result<Box<dyn SkfCrypto + Send + Sync>> {
+    get_engine()?.crypto()
+}
 pub fn use_first_device() -> Result<Box<dyn SkfDevice>> {
     let manager = device_manager()?;
-    let dev: Box<dyn SkfDevice> = manager.connect_selected(chose_first)?.unwrap();
+    let dev: Box<dyn SkfDevice> = manager
+        .connect_selected(chose_first)?
+        .expect("SKF Device not found");
     Ok(dev)
 }
 
