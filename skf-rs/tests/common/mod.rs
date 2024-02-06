@@ -8,7 +8,7 @@ pub const TEST_APP_NAME_1: &str = "skf-rs-test-app-1";
 pub const TEST_ADMIN_PIN: &str = "123456";
 pub const TEST_USER_PIN: &str = "654321";
 pub const TEST_FILE_NAME_1: &str = "skf-rs-test-file-1";
-pub const TEST_CONTAINER_NAME_1: &str = "skf-rs-test-file-1";
+pub const TEST_CONTAINER_NAME_1: &str = "skf-rs-test-container-1";
 pub const TEST_AUTH_KEY: [u8; 16] = [
     0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38,
 ];
