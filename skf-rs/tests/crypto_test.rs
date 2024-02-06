@@ -1,13 +1,14 @@
 mod common;
 use crate::common::{use_crypto, use_first_device};
 use skf_rs::helper::describe_result;
-use skf_rs::{BlockCipherParameter, CryptoAlgorithm};
+use skf_rs::spec::algorithm;
+use skf_rs::BlockCipherParameter;
 
 #[test]
 #[ignore]
 fn set_symmetric_key_test() {
     let dev = use_first_device().unwrap();
-    let ret = dev.set_symmetric_key(CryptoAlgorithm::SgdSms4Ecb.id(), &[0u8; 16]);
+    let ret = dev.set_symmetric_key(algorithm::SGD_SM4_ECB, &[0u8; 16]);
     println!("set_symmetric_key result: {:?}", describe_result(&ret));
     assert!(ret.is_ok());
 }
@@ -18,7 +19,7 @@ fn sms_4ecb_test() {
     let dev = use_first_device().unwrap();
     let crypto = use_crypto().unwrap();
     let key = dev
-        .set_symmetric_key(CryptoAlgorithm::SgdSms4Ecb.id(), &[0u8; 16])
+        .set_symmetric_key(algorithm::SGD_SM4_ECB, &[0u8; 16])
         .unwrap();
     crypto
         .encrypt_init(key.as_ref(), &BlockCipherParameter::default())

@@ -1,6 +1,7 @@
 mod engine;
 mod error;
 pub mod helper;
+pub mod spec;
 
 use skf_api::native::types::{HANDLE, ULONG};
 use std::time::Duration;
@@ -159,7 +160,12 @@ pub trait DeviceCtl {
     /// # specification note
     ///
     /// This function is for testing purpose
-    fn transmit(&self, command: &[u8], recv_capacity: u32) -> Result<Vec<u8>>;
+    fn transmit(&self, command: &[u8], recv_capacity: usize) -> Result<Vec<u8>>;
+
+    /// Generate random data
+    ///
+    /// [len] - The random data length to generate,in bytes
+    fn gen_random(&self, len: usize) -> Result<Vec<u8>>;
 
     /// Import plain symmetric key(AKA session key)
     ///
@@ -170,22 +176,24 @@ pub trait DeviceCtl {
 }
 
 #[derive(Debug, Default)]
-pub struct CreateAppOption {
-    pub name: String,
+pub struct AppAttr {
     pub admin_pin: String,
     pub admin_pin_retry_count: u32,
     pub user_pin: String,
     pub user_pin_retry_count: u32,
     pub create_file_rights: u32,
 }
+
 pub trait AppManager {
     ///  Enumerate all apps in the device,return app names
     fn enumerate_app_name(&self) -> Result<Vec<String>>;
 
     /// Create app in the device
     ///
-    ///[option] - The app option
-    fn create_app(&self, option: &CreateAppOption) -> Result<Box<dyn SkfApp>>;
+    /// [name] - The app name
+    ///
+    /// [attr] - The attribute of app
+    fn create_app(&self, name: &str, attr: &AppAttr) -> Result<Box<dyn SkfApp>>;
 
     /// Open app
     ///
@@ -217,7 +225,10 @@ pub trait DeviceSecurity {
 /// Represents a device instance,call `DeviceManager::connect()` or `DeviceManager::connect_selected()` to get one
 /// ## Disconnect
 /// Device instance is disconnected when `Drop`
-pub trait SkfDevice: DeviceCtl + DeviceSecurity + AppManager {}
+pub trait SkfDevice: DeviceCtl + DeviceSecurity + AppManager {
+    /// create crypto service
+    fn crypto(&self) -> Result<Box<dyn SkfCrypto + Send + Sync>>;
+}
 
 /// PIN type: Admin
 pub const PIN_TYPE_ADMIN: u8 = 0;
@@ -388,7 +399,12 @@ pub struct BlockCipherParameter {
     pub feed_bit_len: u32,
 }
 
+/// Represents a key object
+/// ## Close
+/// key object is closed when `Drop`
 pub trait ManagedKey: AsRef<HANDLE> {}
+
+/// Represents a crypto service
 pub trait SkfCrypto {
     /// Initialize encryption
     ///
@@ -421,8 +437,4 @@ pub trait SkfCrypto {
     ///
     /// see `SKF_Decrypt` for more details
     fn decrypt(&self, key: &dyn ManagedKey, data: &[u8], buffer_size: usize) -> Result<Vec<u8>>;
-}
-
-pub enum CryptoAlgorithm {
-    SgdSms4Ecb,
 }

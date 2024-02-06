@@ -50,7 +50,7 @@ impl SkfErr {
         }
     }
 
-    pub fn with_default_msg(code: u32) -> Self {
+    pub fn of_code(code: u32) -> Self {
         let message = get_message(code).unwrap_or("Unknown error");
         Self::new(code, message)
     }

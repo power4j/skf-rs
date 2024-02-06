@@ -1,7 +1,7 @@
-use crate::engine::device::SkfDeviceImpl;
-use crate::engine::symbol::{crypto_fn, ModCrypto, ModDev, SymbolBundle};
+use crate::engine::crypto;
+use crate::engine::symbol::{crypto_fn, ModCrypto, SymbolBundle};
 use crate::error::{InvalidArgumentError, SkfErr};
-use crate::{BlockCipherParameter, CryptoAlgorithm, Error, ManagedKey, Result, SkfCrypto};
+use crate::{BlockCipherParameter, Error, ManagedKey, Result, SkfCrypto, SkfDevice};
 use skf_api::native::error::SAR_OK;
 use skf_api::native::types::{BlockCipherParam, BYTE, HANDLE, MAX_IV_LEN, ULONG};
 use std::fmt::Debug;
@@ -42,7 +42,7 @@ impl ManagedKeyImpl {
         let ret = unsafe { (self.close_fn)(self.handle.clone()) };
         trace!("[SKF_CloseHandle]: ret = {}", ret);
         if ret != SAR_OK {
-            return Err(Error::Skf(SkfErr::with_default_msg(ret)));
+            return Err(Error::Skf(SkfErr::of_code(ret)));
         }
         Ok(())
     }
@@ -71,7 +71,7 @@ impl SkfCrypto for SkfCryptoImpl {
         let ret = unsafe { func(key.as_ref().clone(), param) };
         trace!("[SKF_EncryptInit]: ret = {}", ret);
         if ret != SAR_OK {
-            return Err(Error::Skf(SkfErr::with_default_msg(ret)));
+            return Err(Error::Skf(SkfErr::of_code(ret)));
         }
         Ok(())
     }
@@ -92,7 +92,7 @@ impl SkfCrypto for SkfCryptoImpl {
         };
         trace!("[SKF_Encrypt]: ret = {}", ret);
         if ret != SAR_OK {
-            return Err(Error::Skf(SkfErr::with_default_msg(ret)));
+            return Err(Error::Skf(SkfErr::of_code(ret)));
         }
         trace!("[SKF_Encrypt]: output len = {}", len);
         unsafe { buffer.set_len(len as usize) };
@@ -107,14 +107,6 @@ impl SkfCrypto for SkfCryptoImpl {
     #[instrument(skip(key))]
     fn decrypt(&self, key: &dyn ManagedKey, data: &[u8], buffer_size: usize) -> Result<Vec<u8>> {
         todo!()
-    }
-}
-
-impl CryptoAlgorithm {
-    pub fn id(&self) -> u32 {
-        match *self {
-            CryptoAlgorithm::SgdSms4Ecb => 0x00000401,
-        }
     }
 }
 

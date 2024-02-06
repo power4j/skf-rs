@@ -152,7 +152,8 @@ pub(crate) mod container_fn {
 pub(crate) mod crypto_fn {
     use crate::engine::symbol::SymbolBundle;
     use skf_api::native::types::{BlockCipherParam, BYTE, HANDLE, ULONG};
-
+    pub(crate) type SKF_GenRandom =
+        SymbolBundle<unsafe extern "C" fn(HANDLE, *mut BYTE, ULONG) -> ULONG>;
     pub(crate) type SKF_CloseHandle = SymbolBundle<unsafe extern "C" fn(HANDLE) -> ULONG>;
     pub(super) type SKF_SetSymmKey =
         SymbolBundle<unsafe extern "C" fn(HANDLE, *const BYTE, ULONG, *mut HANDLE) -> ULONG>;
@@ -205,6 +206,7 @@ pub(crate) struct ModDev {
     pub app_open: Option<device_fn::SKF_OpenApplication>,
     pub app_delete: Option<device_fn::SKF_DeleteApplication>,
     pub app_enum: Option<device_fn::SKF_EnumApplication>,
+    pub gen_random: Option<crypto_fn::SKF_GenRandom>,
     pub sym_key_import: Option<crypto_fn::SKF_SetSymmKey>,
 }
 
@@ -223,6 +225,7 @@ impl ModDev {
         let app_open = Some(unsafe { SymbolBundle::new(lib, b"SKF_OpenApplication\0")? });
         let app_delete = Some(unsafe { SymbolBundle::new(lib, b"SKF_DeleteApplication\0")? });
         let app_enum = Some(unsafe { SymbolBundle::new(lib, b"SKF_EnumApplication\0")? });
+        let gen_random = Some(unsafe { SymbolBundle::new(lib, b"SKF_GenRandom\0")? });
         let sym_key_import = Some(unsafe { SymbolBundle::new(lib, b"SKF_SetSymmKey\0")? });
 
         let holder = Self {
@@ -238,6 +241,7 @@ impl ModDev {
             app_open,
             app_delete,
             app_enum,
+            gen_random,
             sym_key_import,
         };
         Ok(holder)

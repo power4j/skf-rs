@@ -1,10 +1,12 @@
+use crate::engine::app::SkfAppImpl;
+use crate::engine::crypto;
 use crate::engine::crypto::ManagedKeyImpl;
 use crate::engine::symbol::ModDev;
 use crate::error::SkfErr;
 use crate::helper::{mem, param};
 use crate::{
-    AppManager, CreateAppOption, DeviceCtl, DeviceInformation, DeviceSecurity, ManagedKey, SkfApp,
-    SkfDevice, Version,
+    AppAttr, AppManager, DeviceCtl, DeviceInformation, DeviceSecurity, ManagedKey, SkfApp,
+    SkfCrypto, SkfDevice, Version,
 };
 use crate::{Error, Result};
 use skf_api::native::error::SAR_OK;
@@ -44,7 +46,7 @@ impl SkfDeviceImpl {
             let ret = unsafe { func(self.handle.clone()) };
             trace!("[SKF_DisConnectDev]: ret = {}", ret);
             if ret != SAR_OK {
-                return Err(Error::Skf(SkfErr::with_default_msg(ret)));
+                return Err(Error::Skf(SkfErr::of_code(ret)));
             }
             self.handle = std::ptr::null();
         }
@@ -71,7 +73,7 @@ impl DeviceSecurity for SkfDeviceImpl {
         };
         trace!("[SKF_DevAuth]: ret = {}", ret);
         if ret != SAR_OK {
-            return Err(Error::Skf(SkfErr::with_default_msg(ret)));
+            return Err(Error::Skf(SkfErr::of_code(ret)));
         }
         Ok(())
     }
@@ -92,7 +94,7 @@ impl DeviceSecurity for SkfDeviceImpl {
         };
         trace!("[SKF_ChangeDevAuthKey]: ret = {}", ret);
         if ret != SAR_OK {
-            return Err(Error::Skf(SkfErr::with_default_msg(ret)));
+            return Err(Error::Skf(SkfErr::of_code(ret)));
         }
         Ok(())
     }
@@ -110,7 +112,7 @@ impl DeviceCtl for SkfDeviceImpl {
         let ret = unsafe { func(self.handle.clone(), label.as_ptr() as *const CHAR) };
         trace!("[SKF_SetLabel]: ret = {}", ret);
         if ret != SAR_OK {
-            return Err(Error::Skf(SkfErr::with_default_msg(ret)));
+            return Err(Error::Skf(SkfErr::of_code(ret)));
         }
         Ok(())
     }
@@ -122,7 +124,7 @@ impl DeviceCtl for SkfDeviceImpl {
         let ret = unsafe { func(self.handle.clone(), &mut data) };
         trace!("[SKF_GetDevInfo]: ret = {}", ret);
         if ret != SAR_OK {
-            return Err(Error::Skf(SkfErr::with_default_msg(ret)));
+            return Err(Error::Skf(SkfErr::of_code(ret)));
         }
         Ok(DeviceInformation::from(&data))
     }
@@ -136,7 +138,7 @@ impl DeviceCtl for SkfDeviceImpl {
         let ret = unsafe { func(self.handle.clone(), timeout) };
         trace!("[SKF_LockDev]: ret = {}", ret);
         if ret != SAR_OK {
-            return Err(Error::Skf(SkfErr::with_default_msg(ret)));
+            return Err(Error::Skf(SkfErr::of_code(ret)));
         }
         Ok(())
     }
@@ -147,15 +149,15 @@ impl DeviceCtl for SkfDeviceImpl {
         let ret = unsafe { func(self.handle.clone()) };
         trace!("[SKF_UnlockDev]: ret = {}", ret);
         if ret != SAR_OK {
-            return Err(Error::Skf(SkfErr::with_default_msg(ret)));
+            return Err(Error::Skf(SkfErr::of_code(ret)));
         }
         Ok(())
     }
     #[instrument]
-    fn transmit(&self, command: &[u8], recv_capacity: u32) -> Result<Vec<u8>> {
+    fn transmit(&self, command: &[u8], recv_capacity: usize) -> Result<Vec<u8>> {
         let func = self.symbols.dev_transmit.as_ref().expect("Symbol not load");
         let mut len: ULONG = recv_capacity as ULONG;
-        let mut buffer = Vec::<u8>::with_capacity(recv_capacity as usize);
+        let mut buffer = Vec::<u8>::with_capacity(recv_capacity);
         let ret = unsafe {
             func(
                 self.handle.clone(),
@@ -167,10 +169,28 @@ impl DeviceCtl for SkfDeviceImpl {
         };
         trace!("[SKF_Transmit]: ret = {}", ret);
         if ret != SAR_OK {
-            return Err(Error::Skf(SkfErr::with_default_msg(ret)));
+            return Err(Error::Skf(SkfErr::of_code(ret)));
         }
         trace!("[SKF_Transmit]: output len = {}", len);
         unsafe { buffer.set_len(len as usize) };
+        Ok(buffer)
+    }
+    #[instrument]
+    fn gen_random(&self, len: usize) -> Result<Vec<u8>> {
+        let func = self.symbols.gen_random.as_ref().expect("Symbol not load");
+        let mut buffer = Vec::<u8>::with_capacity(len);
+        let ret = unsafe {
+            func(
+                self.handle.clone(),
+                buffer.as_mut_ptr() as *mut BYTE,
+                len as ULONG,
+            )
+        };
+        trace!("[SKF_GenRandom]: ret = {}", ret);
+        if ret != SAR_OK {
+            return Err(Error::Skf(SkfErr::of_code(ret)));
+        }
+        unsafe { buffer.set_len(len) };
         Ok(buffer)
     }
 
@@ -191,7 +211,7 @@ impl DeviceCtl for SkfDeviceImpl {
         };
         trace!("[SKF_SetSymmKey]: ret = {}", ret);
         if ret != SAR_OK {
-            return Err(Error::Skf(SkfErr::with_default_msg(ret)));
+            return Err(Error::Skf(SkfErr::of_code(ret)));
         }
         let managed_key = ManagedKeyImpl::try_new(handle, &self.lib)?;
         Ok(Box::new(managed_key))
@@ -205,13 +225,13 @@ impl AppManager for SkfDeviceImpl {
         let mut len: ULONG = 0;
         let ret = unsafe { func(self.handle.clone(), std::ptr::null_mut(), &mut len) };
         if ret != SAR_OK {
-            return Err(Error::Skf(SkfErr::with_default_msg(ret)));
+            return Err(Error::Skf(SkfErr::of_code(ret)));
         }
         let mut buff = Vec::<CHAR>::with_capacity(len as usize);
         let ret = unsafe { func(self.handle.clone(), buff.as_mut_ptr(), &mut len) };
         trace!("[SKF_EnumApplication]: ret = {}", ret);
         if ret != SAR_OK {
-            return Err(Error::Skf(SkfErr::with_default_msg(ret)));
+            return Err(Error::Skf(SkfErr::of_code(ret)));
         }
         unsafe { buff.set_len(len as usize) };
         trace!(
@@ -224,30 +244,30 @@ impl AppManager for SkfDeviceImpl {
     }
 
     #[instrument]
-    fn create_app(&self, option: &CreateAppOption) -> Result<Box<dyn SkfApp>> {
+    fn create_app(&self, name: &str, attr: &AppAttr) -> Result<Box<dyn SkfApp>> {
         let func = self.symbols.app_create.as_ref().expect("Symbol not load");
-        let name = param::as_cstring("option.name", &option.name)?;
-        let admin_pin = param::as_cstring("option.admin_pin", &option.admin_pin)?;
-        let user_pin = param::as_cstring("option.user_pin", &option.user_pin)?;
+        let name = param::as_cstring("name", name)?;
+        let admin_pin = param::as_cstring("AppAttr.admin_pin", &attr.admin_pin)?;
+        let user_pin = param::as_cstring("AppAttr.user_pin", &attr.user_pin)?;
         let mut handle: HANDLE = std::ptr::null_mut();
         let ret = unsafe {
             func(
                 self.handle.clone(),
                 name.as_ptr() as *const CHAR,
                 admin_pin.as_ptr() as *const CHAR,
-                option.admin_pin_retry_count as DWORD,
+                attr.admin_pin_retry_count as DWORD,
                 user_pin.as_ptr() as *const CHAR,
-                option.user_pin_retry_count as DWORD,
-                option.create_file_rights as DWORD,
+                attr.user_pin_retry_count as DWORD,
+                attr.create_file_rights as DWORD,
                 &mut handle,
             )
         };
         trace!("[SKF_CreateApplication]: ret = {}", ret);
         if ret != SAR_OK {
-            return Err(Error::Skf(SkfErr::with_default_msg(ret)));
+            return Err(Error::Skf(SkfErr::of_code(ret)));
         }
-
-        todo!()
+        let app = SkfAppImpl::new(handle, &self.lib)?;
+        Ok(Box::new(app))
     }
 
     #[instrument]
@@ -258,9 +278,10 @@ impl AppManager for SkfDeviceImpl {
         let ret = unsafe { func(self.handle.clone(), name.as_ptr() as LPSTR, &mut handle) };
         trace!("[SKF_OpenApplication]: ret = {}", ret);
         if ret != SAR_OK {
-            return Err(Error::Skf(SkfErr::with_default_msg(ret)));
+            return Err(Error::Skf(SkfErr::of_code(ret)));
         }
-        todo!()
+        let app = SkfAppImpl::new(handle, &self.lib)?;
+        Ok(Box::new(app))
     }
 
     #[instrument]
@@ -270,13 +291,18 @@ impl AppManager for SkfDeviceImpl {
         let ret = unsafe { func(self.handle.clone(), name.as_ptr() as LPSTR) };
         trace!("[SKF_DeleteApplication]: ret = {}", ret);
         if ret != SAR_OK {
-            return Err(Error::Skf(SkfErr::with_default_msg(ret)));
+            return Err(Error::Skf(SkfErr::of_code(ret)));
         }
         Ok(())
     }
 }
 
-impl SkfDevice for SkfDeviceImpl {}
+impl SkfDevice for SkfDeviceImpl {
+    fn crypto(&self) -> Result<Box<dyn SkfCrypto + Send + Sync>> {
+        let crypto = crypto::SkfCryptoImpl::new(&self.lib)?;
+        Ok(Box::new(crypto))
+    }
+}
 impl Drop for SkfDeviceImpl {
     fn drop(&mut self) {
         let _ = self.disconnect();

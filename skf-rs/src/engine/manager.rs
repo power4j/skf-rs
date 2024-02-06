@@ -39,13 +39,13 @@ impl DeviceManager for ManagerImpl {
         let mut len: ULONG = 0;
         let ret = unsafe { func(presented_only as BOOL, std::ptr::null_mut(), &mut len) };
         if ret != SAR_OK {
-            return Err(Error::Skf(SkfErr::with_default_msg(ret)));
+            return Err(Error::Skf(SkfErr::of_code(ret)));
         }
         let mut buff = Vec::<CHAR>::with_capacity(len as usize);
         let ret = unsafe { func(presented_only as BOOL, buff.as_mut_ptr(), &mut len) };
         trace!("[SKF_EnumDev]: ret = {}", ret);
         if ret != SAR_OK {
-            return Err(Error::Skf(SkfErr::with_default_msg(ret)));
+            return Err(Error::Skf(SkfErr::of_code(ret)));
         }
         unsafe { buff.set_len(len as usize) };
         trace!(
@@ -68,7 +68,7 @@ impl DeviceManager for ManagerImpl {
         let mut satate: ULONG = 0;
         let ret = unsafe { func(device_name.as_ptr() as *const CHAR, &mut satate) };
         if ret != SAR_OK {
-            return Err(Error::Skf(SkfErr::with_default_msg(ret)));
+            return Err(Error::Skf(SkfErr::of_code(ret)));
         }
         Ok(satate as u32)
     }
@@ -86,7 +86,7 @@ impl DeviceManager for ManagerImpl {
         let ret = unsafe { func(buff.as_mut_ptr(), &mut len, &mut event) };
         trace!("[SKF_WaitForDevEvent]: ret = {}", ret);
         if ret != SAR_OK {
-            return Err(Error::Skf(SkfErr::with_default_msg(ret)));
+            return Err(Error::Skf(SkfErr::of_code(ret)));
         }
         trace!(
             "[SKF_WaitForDevEvent]: event = {},data len = {}",
@@ -114,7 +114,7 @@ impl DeviceManager for ManagerImpl {
         let ret = unsafe { func() };
         trace!("[SKF_CancelWaitForDevEvent]: ret = {}", ret);
         if ret != SAR_OK {
-            return Err(Error::Skf(SkfErr::with_default_msg(ret)));
+            return Err(Error::Skf(SkfErr::of_code(ret)));
         }
         Ok(())
     }
@@ -127,7 +127,7 @@ impl DeviceManager for ManagerImpl {
         let ret = unsafe { func(device_name.as_ptr() as *const CHAR, &mut handle) };
         trace!("[SKF_ConnectDev]: ret = {}", ret);
         if ret != SAR_OK {
-            return Err(Error::Skf(SkfErr::with_default_msg(ret)));
+            return Err(Error::Skf(SkfErr::of_code(ret)));
         }
         let dev = SkfDeviceImpl::new(handle, &self.lib)?;
         Ok(Box::new(dev))

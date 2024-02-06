@@ -35,7 +35,7 @@ impl SkfAppImpl {
             let ret = unsafe { func(self.handle.clone()) };
             trace!("[SKF_CloseApplication]: ret = {}", ret);
             if ret != SAR_OK {
-                return Err(Error::Skf(SkfErr::with_default_msg(ret)));
+                return Err(Error::Skf(SkfErr::of_code(ret)));
             }
             self.handle = std::ptr::null();
         }
@@ -73,14 +73,14 @@ impl AppSecurity for SkfAppImpl {
         match ret {
             SAR_OK => Ok(()),
             SAR_PIN_INCORRECT => {
-                let source = SkfErr::with_default_msg(ret);
+                let source = SkfErr::of_code(ret);
                 Err(Error::PinVerifyFail(SkfPinVerifyError::new(
                     count,
                     "old pin incorrect",
                     source,
                 )))
             }
-            _ => Err(Error::Skf(SkfErr::with_default_msg(ret))),
+            _ => Err(Error::Skf(SkfErr::of_code(ret))),
         }
     }
 
@@ -101,14 +101,14 @@ impl AppSecurity for SkfAppImpl {
         match ret {
             SAR_OK => Ok(()),
             SAR_PIN_INCORRECT => {
-                let source = SkfErr::with_default_msg(ret);
+                let source = SkfErr::of_code(ret);
                 Err(Error::PinVerifyFail(SkfPinVerifyError::new(
                     count,
                     "pin incorrect",
                     source,
                 )))
             }
-            _ => Err(Error::Skf(SkfErr::with_default_msg(ret))),
+            _ => Err(Error::Skf(SkfErr::of_code(ret))),
         }
     }
 
@@ -136,7 +136,7 @@ impl AppSecurity for SkfAppImpl {
                 remain_retry_count,
                 default_pin: default_pin != FALSE,
             }),
-            _ => Err(Error::Skf(SkfErr::with_default_msg(ret))),
+            _ => Err(Error::Skf(SkfErr::of_code(ret))),
         }
     }
 
@@ -158,14 +158,14 @@ impl AppSecurity for SkfAppImpl {
         match ret {
             SAR_OK => Ok(()),
             SAR_PIN_INCORRECT => {
-                let source = SkfErr::with_default_msg(ret);
+                let source = SkfErr::of_code(ret);
                 Err(Error::PinVerifyFail(SkfPinVerifyError::new(
                     count,
                     "admin pin incorrect",
                     source,
                 )))
             }
-            _ => Err(Error::Skf(SkfErr::with_default_msg(ret))),
+            _ => Err(Error::Skf(SkfErr::of_code(ret))),
         }
     }
 
@@ -180,7 +180,7 @@ impl AppSecurity for SkfAppImpl {
         trace!("[SKF_ClearSecureState]: ret = {}", ret);
         match ret {
             SAR_OK => Ok(()),
-            _ => Err(Error::Skf(SkfErr::with_default_msg(ret))),
+            _ => Err(Error::Skf(SkfErr::of_code(ret))),
         }
     }
 }
@@ -196,13 +196,13 @@ impl FileManager for SkfAppImpl {
         let mut len: ULONG = 0;
         let ret = unsafe { func(self.handle.clone(), std::ptr::null_mut(), &mut len) };
         if ret != SAR_OK {
-            return Err(Error::Skf(SkfErr::with_default_msg(ret)));
+            return Err(Error::Skf(SkfErr::of_code(ret)));
         }
         let mut buff = Vec::<CHAR>::with_capacity(len as usize);
         let ret = unsafe { func(self.handle.clone(), buff.as_mut_ptr(), &mut len) };
         trace!("[SKF_EnumFiles]: ret = {}", ret);
         if ret != SAR_OK {
-            return Err(Error::Skf(SkfErr::with_default_msg(ret)));
+            return Err(Error::Skf(SkfErr::of_code(ret)));
         }
         unsafe { buff.set_len(len as usize) };
         trace!(
@@ -239,7 +239,7 @@ impl FileManager for SkfAppImpl {
         trace!("[SKF_CreateFile]: ret = {}", ret);
         match ret {
             SAR_OK => Ok(()),
-            _ => Err(Error::Skf(SkfErr::with_default_msg(ret))),
+            _ => Err(Error::Skf(SkfErr::of_code(ret))),
         }
     }
 
@@ -251,7 +251,7 @@ impl FileManager for SkfAppImpl {
         trace!("[SKF_DeleteFile]: ret = {}", ret);
         match ret {
             SAR_OK => Ok(()),
-            _ => Err(Error::Skf(SkfErr::with_default_msg(ret))),
+            _ => Err(Error::Skf(SkfErr::of_code(ret))),
         }
     }
 
@@ -273,7 +273,7 @@ impl FileManager for SkfAppImpl {
         };
         trace!("[SKF_ReadFile]: ret = {}", ret);
         if ret != SAR_OK {
-            return Err(Error::Skf(SkfErr::with_default_msg(ret)));
+            return Err(Error::Skf(SkfErr::of_code(ret)));
         }
         trace!("[SKF_ReadFile]: len = {}", has_read);
         unsafe { buff.set_len(has_read as usize) };
@@ -296,7 +296,7 @@ impl FileManager for SkfAppImpl {
         trace!("[SKF_WriteFile]: ret = {}", ret);
         match ret {
             SAR_OK => Ok(()),
-            _ => Err(Error::Skf(SkfErr::with_default_msg(ret))),
+            _ => Err(Error::Skf(SkfErr::of_code(ret))),
         }
     }
 
@@ -313,7 +313,7 @@ impl FileManager for SkfAppImpl {
         trace!("[SKF_GetFileInfo]: ret = {}", ret);
         match ret {
             SAR_OK => Ok(FileAttr::from(&attr)),
-            _ => Err(Error::Skf(SkfErr::with_default_msg(ret))),
+            _ => Err(Error::Skf(SkfErr::of_code(ret))),
         }
     }
 }
@@ -340,6 +340,7 @@ impl ContainerManager for SkfAppImpl {
     }
 }
 
+impl SkfApp for SkfAppImpl {}
 impl From<&FileAttribute> for FileAttr {
     fn from(value: &FileAttribute) -> Self {
         let file_name: String = unsafe {

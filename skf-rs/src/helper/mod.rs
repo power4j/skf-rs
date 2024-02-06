@@ -1,3 +1,5 @@
+pub mod auth;
+
 pub mod mem {
     use std::cmp::min;
     use std::ffi::CStr;

@@ -1,8 +1,10 @@
-use skf_rs::CreateAppOption;
-use std::time::Duration;
+use skf_rs::{AppAttr, FILE_PERM_EVERYONE, FILE_PERM_USER};
+use std::time::{Duration, SystemTime};
 mod common;
+use crate::common::{use_first_device_with_auth, TEST_ADMIN_PIN, TEST_USER_PIN};
 use common::use_first_device;
 use skf_rs::helper::describe_result;
+
 #[test]
 #[ignore]
 fn get_info_test() {
@@ -34,6 +36,24 @@ fn lock_test() {
 
 #[test]
 #[ignore]
+fn invoke_transmit() {
+    let dev = use_first_device().unwrap();
+    // fake cmd data
+    let ret = dev.transmit([0u8; 16].as_slice(), 16);
+    println!("result of transmit : {:?}", &ret);
+    assert!(ret.is_err());
+}
+
+#[test]
+#[ignore]
+fn gen_random_test() {
+    let dev = use_first_device().unwrap();
+    let ret = dev.gen_random(8);
+    println!("result of gen_random : {:?}", &ret);
+    assert!(ret.is_ok());
+}
+#[test]
+#[ignore]
 fn invoke_dev_auth() {
     let dev = use_first_device().unwrap();
     let auth_data = [0u8; 16];
@@ -60,16 +80,53 @@ fn invoke_app_ctl() {
     println!("result of enum_app : {:?}", &ret);
     assert!(ret.is_ok());
 
-    let opt = CreateAppOption::default();
-    let ret = dev.create_app(&opt);
+    let name = "SKF_APP_TEST";
+    let ret = dev.create_app(name, &AppAttr::default());
     println!("result of create_app : {:?}", describe_result(&ret));
     assert!(ret.is_err());
 
-    let ret = dev.open_app("NOT_EXISTS");
+    let ret = dev.open_app(name);
     println!("result of open_app: {:?}", describe_result(&ret));
     assert!(ret.is_err());
 
-    let ret = dev.delete_app("NOT_EXISTS");
+    let ret = dev.delete_app(name);
     println!("result of delete_app : {:?}", describe_result(&ret));
     assert!(ret.is_err());
+}
+
+#[test]
+#[ignore]
+fn app_ctl_test() {
+    let app_name = format!(
+        "TEST_{}",
+        SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap()
+            .as_secs()
+    );
+
+    let attr = AppAttr {
+        admin_pin: TEST_ADMIN_PIN.to_string(),
+        admin_pin_retry_count: 6,
+        user_pin: TEST_USER_PIN.to_string(),
+        user_pin_retry_count: 6,
+        create_file_rights: FILE_PERM_EVERYONE,
+    };
+
+    let dev = use_first_device_with_auth().unwrap();
+    let ret = dev.enumerate_app_name();
+    println!("result of enum_app : {:?}", &ret);
+    assert!(ret.is_ok());
+
+    let ret = dev.create_app(&app_name, &attr);
+    println!("result of create_app : {:?}", describe_result(&ret));
+    assert!(ret.is_ok());
+
+    let ret = dev.open_app(&app_name);
+    println!("result of open_app: {:?}", describe_result(&ret));
+    assert!(ret.is_ok());
+
+    let ret = dev.delete_app(&app_name);
+    println!("result of delete_app : {:?}", describe_result(&ret));
+    assert!(ret.is_ok());
 }
