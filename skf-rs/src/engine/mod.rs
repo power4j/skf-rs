@@ -9,7 +9,7 @@ pub(crate) mod device;
 pub(crate) mod manager;
 pub(crate) mod symbol;
 
-/// Wrapper to load skf library
+/// Utility to hold native library handle and use SKF Object easily
 pub struct Engine {
     pub(crate) lib: Arc<Library>,
 }
@@ -28,13 +28,13 @@ impl Engine {
         Self { lib: Arc::new(lib) }
     }
 
-    /// Get device manager
+    /// Get device manager instance
     pub fn device_manager(&self) -> Result<Box<dyn DeviceManager + Send + Sync>> {
         let ctl = manager::ManagerImpl::new(&self.lib)?;
         Ok(Box::new(ctl))
     }
 
-    /// Get device manager
+    /// Get device manager instance
     pub fn device_manager_arc(&self) -> Result<Arc<dyn DeviceManager + Send + Sync>> {
         let ctl = manager::ManagerImpl::new(&self.lib)?;
         Ok(Arc::new(ctl))
