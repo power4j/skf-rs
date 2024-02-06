@@ -1,9 +1,11 @@
-use crate::engine::symbol::ModApp;
+use crate::engine::symbol::{ModApp, ModContainer};
 use crate::error::{SkfErr, SkfPinVerifyError};
 use crate::helper::{mem, param};
-use crate::{AppSecurity, ContainerManager, Error, FileAttr, FileManager, PinInfo, SkfApp};
+use crate::{
+    AppSecurity, ContainerManager, Error, FileAttr, FileManager, PinInfo, SkfApp, SkfContainer,
+};
 use skf_api::native::error::{SAR_OK, SAR_PIN_INCORRECT};
-use skf_api::native::types::{FileAttribute, BOOL, BYTE, CHAR, FALSE, HANDLE, LPSTR, ULONG};
+use skf_api::native::types::{FileAttribute, BOOL, BYTE, CHAR, FALSE, HANDLE, LPSTR, TRUE, ULONG};
 use std::fmt::Debug;
 use std::sync::Arc;
 use tracing::{instrument, trace};
@@ -198,6 +200,7 @@ impl FileManager for SkfAppImpl {
         if ret != SAR_OK {
             return Err(Error::Skf(SkfErr::of_code(ret)));
         }
+        trace!("[SKF_EnumFiles]: desired len = {}", len);
         let mut buff = Vec::<CHAR>::with_capacity(len as usize);
         let ret = unsafe { func(self.handle.clone(), buff.as_mut_ptr(), &mut len) };
         trace!("[SKF_EnumFiles]: ret = {}", ret);
@@ -217,16 +220,7 @@ impl FileManager for SkfAppImpl {
     #[instrument]
     fn create_file(&self, attr: &FileAttr) -> crate::Result<()> {
         let func = self.symbols.file_create.as_ref().expect("Symbol not load");
-
-        let mut file_name = [0u8 as CHAR; 32];
-        unsafe {
-            mem::write_cstr_ptr(
-                attr.file_name.as_str(),
-                file_name.as_mut_ptr() as *mut u8,
-                file_name.len(),
-            );
-        }
-
+        let file_name = param::as_cstring("FileAttr.file_name", &attr.file_name)?;
         let ret = unsafe {
             func(
                 self.handle.clone(),
@@ -321,22 +315,97 @@ impl FileManager for SkfAppImpl {
 impl ContainerManager for SkfAppImpl {
     #[instrument]
     fn enumerate_container_name(&self) -> crate::Result<Vec<String>> {
-        todo!()
+        let func = self
+            .symbols
+            .container_get_list
+            .as_ref()
+            .expect("Symbol not load");
+        let mut len: ULONG = 0;
+        let ret = unsafe { func(self.handle.clone(), std::ptr::null_mut(), &mut len) };
+        if ret != SAR_OK {
+            return Err(Error::Skf(SkfErr::of_code(ret)));
+        }
+        trace!("[SKF_EnumContainer]: desired len = {}", len);
+        let mut buff = Vec::<CHAR>::with_capacity(len as usize);
+        let ret = unsafe { func(self.handle.clone(), buff.as_mut_ptr(), &mut len) };
+        trace!("[SKF_EnumContainer]: ret = {}", ret);
+        if ret != SAR_OK {
+            return Err(Error::Skf(SkfErr::of_code(ret)));
+        }
+        unsafe { buff.set_len(len as usize) };
+        trace!(
+            "[SKF_EnumContainer]: file list = {}",
+            String::from_utf8_lossy(&buff)
+        );
+        // The spec says string list end with two '\0',but vendor may not do it
+        let list = unsafe { mem::parse_cstr_list_lossy(buff.as_ptr() as *const u8, buff.len()) };
+        Ok(list)
     }
 
     #[instrument]
-    fn create_container(&self, name: &str) -> crate::Result<Box<dyn SkfApp>> {
-        todo!()
+    fn create_container(&self, name: &str) -> crate::Result<Box<dyn SkfContainer>> {
+        let func = self
+            .symbols
+            .container_create
+            .as_ref()
+            .expect("Symbol not load");
+        let container_name = param::as_cstring("name", name)?;
+
+        let mut handle: HANDLE = std::ptr::null_mut();
+        let ret = unsafe {
+            func(
+                self.handle.clone(),
+                container_name.as_ptr() as LPSTR,
+                &mut handle,
+            )
+        };
+        trace!("[SKF_CreateContainer]: ret = {}", ret);
+        match ret {
+            SAR_OK => Ok(Box::new(SkfContainerImpl::new(handle, &self.lib)?)),
+            _ => Err(Error::Skf(SkfErr::of_code(ret))),
+        }
     }
 
     #[instrument]
-    fn open_container(&self, name: &str) -> crate::Result<Box<dyn SkfApp>> {
-        todo!()
+    fn open_container(&self, name: &str) -> crate::Result<Box<dyn SkfContainer>> {
+        let func = self
+            .symbols
+            .container_open
+            .as_ref()
+            .expect("Symbol not load");
+        let container_name = param::as_cstring("name", name)?;
+
+        let mut handle: HANDLE = std::ptr::null_mut();
+        let ret = unsafe {
+            func(
+                self.handle.clone(),
+                container_name.as_ptr() as LPSTR,
+                &mut handle,
+            )
+        };
+        trace!("[SKF_OpenContainer]: ret = {}", ret);
+        match ret {
+            SAR_OK => Ok(Box::new(SkfContainerImpl::new(handle, &self.lib)?)),
+            _ => Err(Error::Skf(SkfErr::of_code(ret))),
+        }
     }
 
     #[instrument]
     fn delete_container(&self, name: &str) -> crate::Result<()> {
-        todo!()
+        let func = self
+            .symbols
+            .container_delete
+            .as_ref()
+            .expect("Symbol not load");
+        let container_name = param::as_cstring("name", name)?;
+
+        let mut handle: HANDLE = std::ptr::null_mut();
+        let ret = unsafe { func(self.handle.clone(), container_name.as_ptr() as LPSTR) };
+        trace!("[SKF_DeleteContainer]: ret = {}", ret);
+        match ret {
+            SAR_OK => Ok(()),
+            _ => Err(Error::Skf(SkfErr::of_code(ret))),
+        }
     }
 }
 
@@ -353,5 +422,122 @@ impl From<&FileAttribute> for FileAttr {
             read_rights: value.read_rights,
             write_rights: value.write_rights,
         }
+    }
+}
+
+pub(crate) struct SkfContainerImpl {
+    lib: Arc<libloading::Library>,
+    symbols: ModContainer,
+    handle: HANDLE,
+}
+
+impl SkfContainerImpl {
+    /// Initialize
+    ///
+    /// [handle] - The application handle
+    ///
+    /// [lib] - The library handle
+    pub fn new(handle: HANDLE, lib: &Arc<libloading::Library>) -> crate::Result<Self> {
+        let lc = Arc::clone(lib);
+        let symbols = ModContainer::load_symbols(lib)?;
+        Ok(Self {
+            lib: lc,
+            symbols,
+            handle,
+        })
+    }
+
+    pub fn close(&mut self) -> crate::Result<()> {
+        if let Some(ref func) = self.symbols.container_close {
+            let ret = unsafe { func(self.handle.clone()) };
+            trace!("[SKF_CloseContainer]: ret = {}", ret);
+            if ret != SAR_OK {
+                return Err(Error::Skf(SkfErr::of_code(ret)));
+            }
+            self.handle = std::ptr::null();
+        }
+        Ok(())
+    }
+}
+
+impl Debug for SkfContainerImpl {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "SkfContainerImpl")
+    }
+}
+impl Drop for SkfContainerImpl {
+    fn drop(&mut self) {
+        let _ = self.close();
+    }
+}
+impl SkfContainer for SkfContainerImpl {
+    fn get_type(&self) -> crate::Result<u32> {
+        let func = self
+            .symbols
+            .container_get_type
+            .as_ref()
+            .expect("Symbol not load");
+        let mut type_value = 0 as ULONG;
+
+        let mut handle: HANDLE = std::ptr::null_mut();
+        let ret = unsafe { func(self.handle.clone(), &mut type_value) };
+        trace!("[SKF_GetContainerType]: ret = {}", ret);
+        match ret {
+            SAR_OK => Ok(type_value as u32),
+            _ => Err(Error::Skf(SkfErr::of_code(ret))),
+        }
+    }
+
+    fn import_certificate(&self, signer: bool, data: &[u8]) -> crate::Result<()> {
+        let func = self
+            .symbols
+            .container_imp_cert
+            .as_ref()
+            .expect("Symbol not load");
+        let signer = match signer {
+            true => TRUE,
+            false => FALSE,
+        };
+
+        let mut handle: HANDLE = std::ptr::null_mut();
+        let ret = unsafe {
+            func(
+                self.handle.clone(),
+                signer,
+                data.as_ptr() as *const BYTE,
+                data.len() as ULONG,
+            )
+        };
+        trace!("[SKF_ImportCertificate]: ret = {}", ret);
+        match ret {
+            SAR_OK => Ok(()),
+            _ => Err(Error::Skf(SkfErr::of_code(ret))),
+        }
+    }
+
+    fn export_certificate(&self, signer: bool) -> crate::Result<Vec<u8>> {
+        let func = self
+            .symbols
+            .container_exp_cert
+            .as_ref()
+            .expect("Symbol not load");
+        let signer = match signer {
+            true => TRUE,
+            false => FALSE,
+        };
+        let mut len: ULONG = 0;
+        let ret = unsafe { func(self.handle.clone(), signer, std::ptr::null_mut(), &mut len) };
+        if ret != SAR_OK {
+            return Err(Error::Skf(SkfErr::of_code(ret)));
+        }
+        trace!("[SKF_ExportCertificate]: desired len = {}", len);
+        let mut buff = Vec::<CHAR>::with_capacity(len as usize);
+        let ret = unsafe { func(self.handle.clone(), signer, buff.as_mut_ptr(), &mut len) };
+        trace!("[SKF_ExportCertificate]: ret = {}", ret);
+        if ret != SAR_OK {
+            return Err(Error::Skf(SkfErr::of_code(ret)));
+        }
+        unsafe { buff.set_len(len as usize) };
+        Ok(buff)
     }
 }

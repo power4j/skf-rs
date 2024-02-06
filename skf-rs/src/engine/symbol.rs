@@ -312,6 +312,33 @@ impl ModApp {
 }
 
 #[derive(Default)]
+pub(crate) struct ModContainer {
+    pub container_close: Option<container_fn::SKF_CloseContainer>,
+    pub container_get_type: Option<container_fn::SKF_GetContainerType>,
+    pub container_imp_cert: Option<container_fn::SKF_ImportCertificate>,
+    pub container_exp_cert: Option<container_fn::SKF_ExportCertificate>,
+}
+
+impl ModContainer {
+    pub fn load_symbols(lib: &Arc<Library>) -> crate::Result<Self> {
+        let container_close = Some(unsafe { SymbolBundle::new(lib, b"SKF_CloseContainer\0")? });
+        let container_get_type =
+            Some(unsafe { SymbolBundle::new(lib, b"SKF_GetContainerType\0")? });
+        let container_imp_cert =
+            Some(unsafe { SymbolBundle::new(lib, b"SKF_ImportCertificate\0")? });
+        let container_exp_cert =
+            Some(unsafe { SymbolBundle::new(lib, b"SKF_ExportCertificate\0")? });
+        let holder = Self {
+            container_close,
+            container_get_type,
+            container_imp_cert,
+            container_exp_cert,
+        };
+        Ok(holder)
+    }
+}
+
+#[derive(Default)]
 pub(crate) struct ModCrypto {
     pub encrypt_init: Option<crypto_fn::SKF_EncryptInit>,
     pub encrypt: Option<crypto_fn::SKF_Encrypt>,

@@ -237,6 +237,7 @@ pub const PIN_TYPE_ADMIN: u8 = 0;
 pub const PIN_TYPE_USER: u8 = 1;
 
 /// PIN information
+#[derive(Debug, Default)]
 pub struct PinInfo {
     pub max_retry_count: u32,
     pub remain_retry_count: u32,
@@ -362,12 +363,12 @@ pub trait ContainerManager {
     /// Create container in the app
     ///
     /// [name] - The container name
-    fn create_container(&self, name: &str) -> Result<Box<dyn SkfApp>>;
+    fn create_container(&self, name: &str) -> Result<Box<dyn SkfContainer>>;
 
     /// Open container by  name
     ///
     /// [name] - The container name
-    fn open_container(&self, name: &str) -> Result<Box<dyn SkfApp>>;
+    fn open_container(&self, name: &str) -> Result<Box<dyn SkfContainer>>;
     /// Delete container by name
     ///
     /// [name] - The container name
@@ -379,12 +380,30 @@ pub trait ContainerManager {
 /// Application instance is closed when `Drop`
 pub trait SkfApp: AppSecurity + FileManager + ContainerManager {}
 
+const CONTAINER_TYPE_UNKNOWN: u32 = 0;
+const CONTAINER_TYPE_RSA: u32 = 0;
+const CONTAINER_TYPE_ECC: u32 = 0;
+
 /// Represents a Container instance
 /// ## Close
 /// Container instance is closed when `Drop`
 pub trait SkfContainer {
-    fn get_type(&self) -> Result<u8>;
+    /// Get container type,the value of type can be:
+    /// - [CONTAINER_TYPE_UNKNOWN]
+    /// - [CONTAINER_TYPE_RSA]
+    /// - [CONTAINER_TYPE_ECC]
+    fn get_type(&self) -> Result<u32>;
+
+    /// Import certificate to container
+    ///
+    /// [signer] - True means The imported certificate is used for sign
+    ///
+    /// [data] - The certificate data
     fn import_certificate(&self, signer: bool, data: &[u8]) -> Result<()>;
+
+    /// Export certificate from container
+    ///
+    /// [signer] - True means The exported certificate is used for sign
     fn export_certificate(&self, signer: bool) -> Result<Vec<u8>>;
 }
 

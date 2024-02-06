@@ -227,6 +227,7 @@ impl AppManager for SkfDeviceImpl {
         if ret != SAR_OK {
             return Err(Error::Skf(SkfErr::of_code(ret)));
         }
+        trace!("[SKF_EnumApplication]: desired len = {}", len);
         let mut buff = Vec::<CHAR>::with_capacity(len as usize);
         let ret = unsafe { func(self.handle.clone(), buff.as_mut_ptr(), &mut len) };
         trace!("[SKF_EnumApplication]: ret = {}", ret);

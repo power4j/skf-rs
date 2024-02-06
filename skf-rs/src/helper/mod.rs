@@ -176,7 +176,7 @@ pub mod mem {
     pub unsafe fn write_cstr(src: impl AsRef<str>, buffer: &mut [u8]) {
         let src = src.as_ref().as_bytes();
         let len = min(src.len(), buffer.len());
-        debug_assert!(len >= 0);
+        debug_assert!(len > 0);
         unsafe {
             std::ptr::copy(src.as_ptr(), buffer.as_mut_ptr(), len);
         }
