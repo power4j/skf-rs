@@ -261,7 +261,7 @@ pub trait AppSecurity {
     ///
     fn change_pin(&self, pin_type: u8, old_pin: &str, new_pin: &str) -> Result<()>;
 
-    /// Verify PIN
+    /// Verify PIN to get access rights
     ///
     /// [pin_type] - The pin type,can be `PIN_TYPE_ADMIN` or `PIN_TYPE_USER`
     ///
@@ -298,7 +298,7 @@ pub trait AppSecurity {
     fn clear_secure_state(&self) -> Result<()>;
 }
 
-/// File permission: no one
+/// File permission: none
 pub const FILE_PERM_NONE: u32 = 0x00000000;
 /// File permission: permit to admin account
 pub const FILE_PERM_ADMIN: u32 = 0x00000001;

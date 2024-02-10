@@ -124,6 +124,8 @@ extern "C" {
     /// [app_handle] `[IN]`应用的句柄
     ///
     /// [sz_file_list] `[OUT]`返回文件名称列表，该参数为空，由`size`返回文件信息所需要的空间大小。每个文件名称以单个`'\0'`结束，以双`'\0'`表示列表的结束。
+    ///
+    /// [size] `[IN,OUT]`输入时表示数据缓冲区的大小，输出时表示实际文件名称列表的长度。
     pub fn SKF_EnumFiles(app_handle: HANDLE, sz_file_list: *mut CHAR, size: *mut ULONG) -> ULONG;
 
     /// 获取应用文件的属性信息，例如文件的大小、权限等

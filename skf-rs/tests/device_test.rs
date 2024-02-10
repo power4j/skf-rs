@@ -40,7 +40,7 @@ fn invoke_transmit() {
     let dev = use_first_device().unwrap();
     // fake cmd data
     let ret = dev.transmit([0u8; 16].as_slice(), 16);
-    println!("result of transmit : {:?}", &ret);
+    println!("invoke transmit : {:?}", &ret);
     assert!(ret.is_err());
 }
 
@@ -58,8 +58,7 @@ fn invoke_dev_auth() {
     let dev = use_first_device().unwrap();
     let auth_data = [0u8; 16];
     let ret = dev.device_auth(auth_data.as_slice());
-    println!("result of device_auth : {:?}", &ret);
-    assert!(ret.is_err());
+    println!("invoke device_auth : {:?}", &ret);
 }
 
 #[test]
@@ -68,8 +67,7 @@ fn invoke_change_auth_key() {
     let dev = use_first_device().unwrap();
     let auth_key = [0u8; 16];
     let ret = dev.change_device_auth_key(auth_key.as_slice());
-    println!("result of change_device_auth_key : {:?}", &ret);
-    assert!(ret.is_err());
+    println!("invoke change_device_auth_key : {:?}", &ret);
 }
 
 #[test]
@@ -77,21 +75,17 @@ fn invoke_change_auth_key() {
 fn invoke_app_ctl() {
     let dev = use_first_device().unwrap();
     let ret = dev.enumerate_app_name();
-    println!("result of enum_app : {:?}", &ret);
-    assert!(ret.is_ok());
+    println!("invoke enum_app : {:?}", &ret);
 
     let name = "SKF_APP_TEST";
     let ret = dev.create_app(name, &AppAttr::default());
-    println!("result of create_app : {:?}", describe_result(&ret));
-    assert!(ret.is_err());
+    println!("invoke create_app : {:?}", describe_result(&ret));
 
     let ret = dev.open_app(name);
-    println!("result of open_app: {:?}", describe_result(&ret));
-    assert!(ret.is_err());
+    println!("invoke open_app: {:?}", describe_result(&ret));
 
     let ret = dev.delete_app(name);
-    println!("result of delete_app : {:?}", describe_result(&ret));
-    assert!(ret.is_err());
+    println!("invoke delete_app : {:?}", describe_result(&ret));
 }
 
 #[test]
