@@ -249,7 +249,7 @@ pub mod param {
     use crate::Result;
     use std::ffi::CString;
 
-    /// Convert `&str`to `CString`
+    /// Convert `&str` to `CString`
     ///
     /// ## Errors
     /// This function will return an error if conversion from `&str` to `CString` fails,The error message use `param_name` to describe the parameter.

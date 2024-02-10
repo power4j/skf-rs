@@ -1,6 +1,9 @@
 mod common;
 
-use crate::common::{get_or_create_test_app_1, get_or_create_test_container_1, TEST_USER_PIN, verify_admin_pin, verify_user_pin};
+use crate::common::{
+    get_or_create_test_app_1, get_or_create_test_container_1, verify_admin_pin, verify_user_pin,
+    TEST_USER_PIN,
+};
 use skf_rs::helper::describe_result;
 use skf_rs::{FileAttr, PIN_TYPE_USER};
 
@@ -42,7 +45,7 @@ fn invoke_file_manager_fn() {
     let ret = app.get_file_info("app-xxx");
     println!("invoke get_file_info result: {:?}", &ret);
 
-    let ret = app.write_file("app-xxx", 0, &[0x31u8;10]);
+    let ret = app.write_file("app-xxx", 0, &[0x31u8; 10]);
     println!("invoke write_file result: {:?}", &ret);
 
     let ret = app.read_file("app-xxx", 0, 10);
@@ -57,6 +60,9 @@ fn invoke_file_manager_fn() {
 fn invoke_container_manager_fn() {
     let app = get_or_create_test_app_1().unwrap();
 
+    let ret = verify_admin_pin(app.as_ref());
+    println!("invoke verify_admin_pin result: {:?}", &ret);
+
     let ret = verify_user_pin(app.as_ref());
     println!("invoke verify_user_pin result: {:?}", &ret);
 
@@ -64,7 +70,10 @@ fn invoke_container_manager_fn() {
     println!("invoke enumerate_file_name result: {:?}", &ret);
 
     let ret = app.create_container("container-xxx");
-    println!("invoke create_container result: {:?}", describe_result(&ret));
+    println!(
+        "invoke create_container result: {:?}",
+        describe_result(&ret)
+    );
 
     let ret = app.open_container("container-xxx");
     println!("invoke open_container result: {:?}", describe_result(&ret));
@@ -82,8 +91,14 @@ fn invoke_container_fn() {
     println!("invoke get_type result: {:?}", &ret);
 
     let ret = container.import_certificate(true, &[0u8; 256]);
-    println!("invoke import_certificate result: {:?}", describe_result(&ret));
+    println!(
+        "invoke import_certificate result: {:?}",
+        describe_result(&ret)
+    );
 
     let ret = container.export_certificate(true);
-    println!("invoke export_certificate result: {:?}", describe_result(&ret));
+    println!(
+        "invoke export_certificate result: {:?}",
+        describe_result(&ret)
+    );
 }

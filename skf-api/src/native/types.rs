@@ -58,8 +58,7 @@ pub const SECURE_EVERYONE_ACCOUNT: UINT32 = 0x000000FF;
 
 /// The structure of `VERSION`
 #[derive(Debug, Copy, Clone)]
-#[repr(C)]
-#[repr(align(1))]
+#[repr(C, packed(1))]
 pub struct Version {
     pub major: BYTE,
     pub minor: BYTE,
@@ -67,8 +66,7 @@ pub struct Version {
 
 /// The structure of `DEVINFO`
 #[derive(Debug, Copy, Clone)]
-#[repr(C)]
-#[repr(align(1))]
+#[repr(C, packed(1))]
 pub struct DeviceInfo {
     pub version: Version,
     pub manufacturer: [CHAR; 64],
@@ -90,8 +88,7 @@ pub struct DeviceInfo {
 
 /// The structure of `RSAPUBLICKEYBLOB`
 #[derive(Debug, Copy, Clone)]
-#[repr(C)]
-#[repr(align(1))]
+#[repr(C, packed(1))]
 pub struct RSAPublicKeyBlob {
     pub alg_id: ULONG,
     pub bit_leb: ULONG,
@@ -102,8 +99,7 @@ pub struct RSAPublicKeyBlob {
 
 /// The structure of `RSAPRIVATEKEYBLOB`
 #[derive(Debug, Copy, Clone)]
-#[repr(C)]
-#[repr(align(1))]
+#[repr(C, packed(1))]
 pub struct RSAPrivateKeyBlob {
     pub alg_id: ULONG,
     pub bit_leb: ULONG,
@@ -119,8 +115,7 @@ pub struct RSAPrivateKeyBlob {
 
 /// The structure of `ECCPUBLICKEYBLOB`
 #[derive(Debug, Copy, Clone)]
-#[repr(C)]
-#[repr(align(1))]
+#[repr(C, packed(1))]
 pub struct ECCPublicKeyBlob {
     pub bit_leb: ULONG,
     pub x_coordinate: [BYTE; ECC_MAX_X_COORDINATE_BITS_LEN / 8],
@@ -129,8 +124,7 @@ pub struct ECCPublicKeyBlob {
 
 /// The structure of `ECCPRIVATEKEYBLOB`
 #[derive(Debug, Copy, Clone)]
-#[repr(C)]
-#[repr(align(1))]
+#[repr(C, packed(1))]
 pub struct ECCPrivateKeyBlob {
     pub bit_leb: ULONG,
     pub private_key: [BYTE; ECC_MAX_MODULUS_BITS_LEN / 8],
@@ -138,8 +132,7 @@ pub struct ECCPrivateKeyBlob {
 
 /// The structure of `ECCCIPHERBLOB`
 #[derive(Debug, Copy, Clone)]
-#[repr(C)]
-#[repr(align(1))]
+#[repr(C, packed(1))]
 pub struct ECCCipherBlob {
     pub x_coordinate: [BYTE; ECC_MAX_X_COORDINATE_BITS_LEN / 8],
     pub y_coordinate: [BYTE; ECC_MAX_Y_COORDINATE_BITS_LEN / 8],
@@ -150,8 +143,7 @@ pub struct ECCCipherBlob {
 
 /// The structure of `ECCSIGNATUREBLOB`
 #[derive(Debug, Copy, Clone)]
-#[repr(C)]
-#[repr(align(1))]
+#[repr(C, packed(1))]
 pub struct ECCSignatureBlob {
     pub r: [BYTE; ECC_MAX_X_COORDINATE_BITS_LEN / 8],
     pub s: [BYTE; ECC_MAX_Y_COORDINATE_BITS_LEN / 8],
@@ -159,8 +151,7 @@ pub struct ECCSignatureBlob {
 
 /// The structure of `ENVELOPEDKEYBLOB`
 #[derive(Debug, Copy, Clone)]
-#[repr(C)]
-#[repr(align(1))]
+#[repr(C, packed(1))]
 pub struct SKFEnvelopedKeyBlob {
     pub version: ULONG,
     pub sym_alg_id: ULONG,
@@ -172,8 +163,7 @@ pub struct SKFEnvelopedKeyBlob {
 
 /// The structure of `BLOCKCIPHERPARAM`
 #[derive(Debug, Copy, Clone)]
-#[repr(C)]
-#[repr(align(1))]
+#[repr(C, packed(1))]
 pub struct BlockCipherParam {
     pub iv: [BYTE; MAX_IV_LEN],
     pub iv_len: ULONG,
@@ -183,8 +173,7 @@ pub struct BlockCipherParam {
 
 /// The structure of `FILEATTRIBUTE`
 #[derive(Debug, Copy, Clone)]
-#[repr(C)]
-#[repr(align(1))]
+#[repr(C, packed(1))]
 pub struct FileAttribute {
     pub file_name: [CHAR; 32],
     pub file_size: ULONG,

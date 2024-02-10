@@ -1,5 +1,8 @@
 use skf_rs::helper::auth::encrypt_auth_key_sm1_ecb;
-use skf_rs::{AppAttr, DeviceManager, Engine, LibLoader, Result, SkfApp, SkfContainer, SkfCrypto, SkfDevice, FILE_PERM_EVERYONE, PIN_TYPE_ADMIN, PIN_TYPE_USER};
+use skf_rs::{
+    AppAttr, DeviceManager, Engine, LibLoader, Result, SkfApp, SkfContainer, SkfCrypto, SkfDevice,
+    FILE_PERM_EVERYONE, PIN_TYPE_ADMIN, PIN_TYPE_USER,
+};
 
 pub const TEST_APP_NAME_1: &str = "skf-rs-test-app-1";
 pub const TEST_ADMIN_PIN: &str = "12345678";
@@ -51,7 +54,10 @@ pub fn get_or_create_test_app_1() -> Result<Box<dyn SkfApp>> {
     let list = dev.enumerate_app_name()?;
     if list.contains(&TEST_APP_NAME_1.to_string()) {
         println!("going to open app: {}", TEST_APP_NAME_1);
-        return dev.open_app(TEST_APP_NAME_1);
+        return dev.open_app(TEST_APP_NAME_1).and_then(|app| {
+            app.clear_secure_state()?;
+            Ok(app)
+        });
     }
     println!("going to create app: {}", TEST_APP_NAME_1);
     let attr = AppAttr {
@@ -61,7 +67,10 @@ pub fn get_or_create_test_app_1() -> Result<Box<dyn SkfApp>> {
         user_pin_retry_count: 8,
         create_file_rights: FILE_PERM_EVERYONE,
     };
-    dev.create_app(TEST_APP_NAME_1, &attr)
+    dev.create_app(TEST_APP_NAME_1, &attr).and_then(|app| {
+        app.clear_secure_state()?;
+        Ok(app)
+    })
 }
 
 pub fn get_or_create_test_container_1() -> Result<Box<dyn SkfContainer>> {
@@ -76,9 +85,9 @@ pub fn get_or_create_test_container_1() -> Result<Box<dyn SkfContainer>> {
 }
 
 pub fn verify_admin_pin(app: &dyn SkfApp) -> Result<()> {
-    app.verify_pin(PIN_TYPE_ADMIN,&TEST_ADMIN_PIN)
+    app.verify_pin(PIN_TYPE_ADMIN, &TEST_ADMIN_PIN)
 }
 
 pub fn verify_user_pin(app: &dyn SkfApp) -> Result<()> {
-    app.verify_pin(PIN_TYPE_USER,&TEST_USER_PIN)
+    app.verify_pin(PIN_TYPE_USER, &TEST_USER_PIN)
 }
