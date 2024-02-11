@@ -1,4 +1,4 @@
-use skf_rs::{AppAttr, FILE_PERM_EVERYONE, FILE_PERM_USER};
+use skf_rs::{AppAttr, FILE_PERM_EVERYONE};
 use std::time::{Duration, SystemTime};
 mod common;
 use crate::common::{use_first_device_with_auth, TEST_ADMIN_PIN, TEST_USER_PIN};
@@ -8,7 +8,7 @@ use skf_rs::helper::describe_result;
 #[test]
 #[ignore]
 fn get_info_test() {
-    let dev = use_first_device().unwrap();
+    let dev = use_first_device();
     let ret = dev.info();
     println!("result: {:?}", &ret);
     assert!(ret.is_ok());
@@ -17,7 +17,7 @@ fn get_info_test() {
 #[test]
 #[ignore]
 fn set_lab_test() {
-    let dev = use_first_device().unwrap();
+    let dev = use_first_device();
     let ret = dev.set_label("AB012345678901234567890123456789");
     println!("result: {:?}", &ret);
     assert!(ret.is_ok());
@@ -26,7 +26,7 @@ fn set_lab_test() {
 #[test]
 #[ignore]
 fn lock_test() {
-    let dev = use_first_device().unwrap();
+    let dev = use_first_device();
     let ret = dev.lock(Some(Duration::from_millis(100)));
     println!("result of lock : {:?}", &ret);
     let ret = dev.unlock();
@@ -37,7 +37,7 @@ fn lock_test() {
 #[test]
 #[ignore]
 fn invoke_transmit() {
-    let dev = use_first_device().unwrap();
+    let dev = use_first_device();
     // fake cmd data
     let ret = dev.transmit([0u8; 16].as_slice(), 16);
     println!("invoke transmit : {:?}", &ret);
@@ -47,7 +47,7 @@ fn invoke_transmit() {
 #[test]
 #[ignore]
 fn gen_random_test() {
-    let dev = use_first_device().unwrap();
+    let dev = use_first_device();
     let ret = dev.gen_random(8);
     println!("result of gen_random : {:?}", &ret);
     assert!(ret.is_ok());
@@ -55,7 +55,7 @@ fn gen_random_test() {
 #[test]
 #[ignore]
 fn invoke_dev_auth() {
-    let dev = use_first_device().unwrap();
+    let dev = use_first_device();
     let auth_data = [0u8; 16];
     let ret = dev.device_auth(auth_data.as_slice());
     println!("invoke device_auth : {:?}", &ret);

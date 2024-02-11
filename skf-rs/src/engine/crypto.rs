@@ -1,7 +1,6 @@
-use crate::engine::crypto;
 use crate::engine::symbol::{crypto_fn, ModCrypto, SymbolBundle};
 use crate::error::{InvalidArgumentError, SkfErr};
-use crate::{BlockCipherParameter, Error, ManagedKey, Result, SkfCrypto, SkfDevice};
+use crate::{BlockCipherParameter, Error, ManagedKey, Result, SkfCrypto};
 use skf_api::native::error::SAR_OK;
 use skf_api::native::types::{BlockCipherParam, BYTE, HANDLE, MAX_IV_LEN, ULONG};
 use std::fmt::Debug;

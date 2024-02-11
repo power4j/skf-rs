@@ -3,7 +3,7 @@ mod error;
 pub mod helper;
 pub mod spec;
 
-use skf_api::native::types::{HANDLE, ULONG};
+use skf_api::native::types::HANDLE;
 use std::time::Duration;
 
 pub type Error = error::Error;

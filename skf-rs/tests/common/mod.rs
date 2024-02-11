@@ -17,36 +17,31 @@ pub fn chose_first(list: Vec<&str>) -> Option<&str> {
     Some(list[0])
 }
 
-pub fn get_engine() -> Result<Engine> {
+pub fn get_engine() -> Engine {
     let lib = LibLoader::env_lookup().expect("SKF Lib not load");
-    let engine = Engine::new(lib);
-    Ok(engine)
+    Engine::new(lib)
 }
-pub fn device_manager() -> Result<Box<dyn DeviceManager + Send + Sync>> {
-    get_engine()?.device_manager()
+pub fn device_manager() -> Box<dyn DeviceManager + Send + Sync> {
+    get_engine().device_manager().expect("Cannot get device manager")
 }
-pub fn use_crypto() -> Result<Box<dyn SkfCrypto + Send + Sync>> {
-    get_engine()?.crypto()
+pub fn use_crypto() -> Box<dyn SkfCrypto + Send + Sync> {
+    get_engine().crypto().expect("Cannot get Crypto service")
 }
-pub fn use_first_device() -> Result<Box<dyn SkfDevice>> {
-    let manager = device_manager()?;
-    let dev: Box<dyn SkfDevice> = manager
+pub fn use_first_device() -> Box<dyn SkfDevice> {
+    let manager = device_manager();
+    manager
         .connect_selected(chose_first)?
-        .expect("SKF Device not found");
-    Ok(dev)
+        .expect("SKF Device not found")
 }
 
-pub fn use_first_device_with_auth() -> Result<Box<dyn SkfDevice>> {
-    let manager = device_manager()?;
-    let device: Box<dyn SkfDevice> = manager
-        .connect_selected(chose_first)?
-        .expect("SKF Device not found");
+pub fn use_first_device_with_auth() -> Box<dyn SkfDevice> {
+    let device = use_first_device();
     let auth_key =
         encrypt_auth_key_sm1_ecb(device.as_ref(), &TEST_AUTH_KEY).expect("auth key encrypt failed");
     let _ = device
         .device_auth(auth_key.as_slice())
         .expect("device auth failed");
-    Ok(device)
+    device
 }
 
 pub fn get_or_create_test_app_1() -> Result<Box<dyn SkfApp>> {

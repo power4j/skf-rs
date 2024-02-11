@@ -7,7 +7,7 @@ use skf_rs::BlockCipherParameter;
 #[test]
 #[ignore]
 fn set_symmetric_key_test() {
-    let dev = use_first_device().unwrap();
+    let dev = use_first_device();
     let ret = dev.set_symmetric_key(algorithm::SGD_SM4_ECB, &[0u8; 16]);
     println!("set_symmetric_key result: {:?}", describe_result(&ret));
     assert!(ret.is_ok());
@@ -16,8 +16,8 @@ fn set_symmetric_key_test() {
 #[test]
 #[ignore]
 fn sms_4ecb_test() {
-    let dev = use_first_device().unwrap();
-    let crypto = use_crypto().unwrap();
+    let dev = use_first_device();
+    let crypto = use_crypto();
     let key = dev
         .set_symmetric_key(algorithm::SGD_SM4_ECB, &[0u8; 16])
         .unwrap();

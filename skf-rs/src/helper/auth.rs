@@ -1,7 +1,6 @@
 use crate::error::InvalidArgumentError;
 use crate::spec::algorithm;
 use crate::{BlockCipherParameter, Error, Result, SkfDevice};
-use std::fmt::format;
 
 /// Get pcks7 aligned length
 ///

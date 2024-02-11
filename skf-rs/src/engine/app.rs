@@ -399,7 +399,6 @@ impl ContainerManager for SkfAppImpl {
             .expect("Symbol not load");
         let container_name = param::as_cstring("name", name)?;
 
-        let mut handle: HANDLE = std::ptr::null_mut();
         let ret = unsafe { func(self.handle.clone(), container_name.as_ptr() as LPSTR) };
         trace!("[SKF_DeleteContainer]: ret = {}", ret);
         match ret {
@@ -479,7 +478,6 @@ impl SkfContainer for SkfContainerImpl {
             .expect("Symbol not load");
         let mut type_value = 0 as ULONG;
 
-        let mut handle: HANDLE = std::ptr::null_mut();
         let ret = unsafe { func(self.handle.clone(), &mut type_value) };
         trace!("[SKF_GetContainerType]: ret = {}", ret);
         match ret {
@@ -499,7 +497,6 @@ impl SkfContainer for SkfContainerImpl {
             false => FALSE,
         };
 
-        let mut handle: HANDLE = std::ptr::null_mut();
         let ret = unsafe {
             func(
                 self.handle.clone(),
