@@ -21,9 +21,6 @@ fn invoke_app_security_fn() {
     let ret = app.verify_pin(PIN_TYPE_USER, TEST_USER_PIN);
     println!("verify_pin result: {:?}", &ret);
 
-    let ret = app.pin_info(PIN_TYPE_USER);
-    println!("pin_info result: {:?}", &ret);
-
     let ret = app.unblock_pin(TEST_ADMIN_PIN, TEST_USER_PIN);
     println!("unblock_pin result: {:?}", &ret);
 
