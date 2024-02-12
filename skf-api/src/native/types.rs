@@ -8,12 +8,12 @@ pub struct Void {
     _marker:core::marker::PhantomData<(*mut u8, core::marker::PhantomPinned)>,
 }
 
-pub type INT8 = std::ffi::c_schar;
-pub type INT16 = std::ffi::c_short;
-pub type INT32 = std::ffi::c_int;
-pub type UINT8 = std::ffi::c_uchar;
-pub type UINT16 = std::ffi::c_ushort;
-pub type UINT32 = std::ffi::c_uint;
+pub type INT8 = i8;
+pub type INT16 = i16;
+pub type INT32 = i32;
+pub type UINT8 = u8;
+pub type UINT16 = u16;
+pub type UINT32 = u32;
 pub type SHORT = INT16;
 pub type LONG = INT32;
 pub type UINT = INT32;
