@@ -1,5 +1,7 @@
+use crate::engine::symbol::crypto_fn;
 use crate::{DeviceManager, Result, SkfCrypto};
 use libloading::Library;
+use skf_api::native::types::HANDLE;
 use std::env;
 use std::sync::Arc;
 

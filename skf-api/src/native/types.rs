@@ -5,7 +5,7 @@
 #[repr(C)]
 pub struct Void {
     _inner: [u8; 0],
-    _marker:core::marker::PhantomData<(*mut u8, core::marker::PhantomPinned)>,
+    _marker: core::marker::PhantomData<(*mut u8, core::marker::PhantomPinned)>,
 }
 
 pub type INT8 = i8;

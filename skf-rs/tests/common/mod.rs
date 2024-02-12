@@ -1,7 +1,8 @@
+use skf_api::native::error::SAR_APPLICATION_NOT_EXISTS;
 use skf_rs::helper::auth::encrypt_auth_key_sm1_ecb;
 use skf_rs::{
-    AppAttr, DeviceManager, Engine, LibLoader, Result, SkfApp, SkfContainer, SkfCrypto, SkfDevice,
-    FILE_PERM_EVERYONE, PIN_TYPE_ADMIN, PIN_TYPE_USER,
+    AppAttr, DeviceManager, Engine, Error, LibLoader, Result, SkfApp, SkfContainer, SkfCrypto,
+    SkfDevice, FILE_PERM_EVERYONE, PIN_TYPE_ADMIN, PIN_TYPE_USER,
 };
 
 pub const TEST_APP_NAME_1: &str = "skf-rs-test-app-1";
@@ -22,7 +23,9 @@ pub fn get_engine() -> Engine {
     Engine::new(lib)
 }
 pub fn device_manager() -> Box<dyn DeviceManager + Send + Sync> {
-    get_engine().device_manager().expect("Cannot get device manager")
+    get_engine()
+        .device_manager()
+        .expect("Cannot get device manager")
 }
 pub fn use_crypto() -> Box<dyn SkfCrypto + Send + Sync> {
     get_engine().crypto().expect("Cannot get Crypto service")
@@ -30,8 +33,9 @@ pub fn use_crypto() -> Box<dyn SkfCrypto + Send + Sync> {
 pub fn use_first_device() -> Box<dyn SkfDevice> {
     let manager = device_manager();
     manager
-        .connect_selected(chose_first)?
+        .connect_selected(chose_first)
         .expect("SKF Device not found")
+        .unwrap()
 }
 
 pub fn use_first_device_with_auth() -> Box<dyn SkfDevice> {
@@ -44,15 +48,18 @@ pub fn use_first_device_with_auth() -> Box<dyn SkfDevice> {
     device
 }
 
-pub fn get_or_create_test_app_1() -> Result<Box<dyn SkfApp>> {
-    let dev = use_first_device_with_auth()?;
-    let list = dev.enumerate_app_name()?;
+pub fn get_or_create_test_app_1() -> (Box<dyn SkfDevice>, Box<dyn SkfApp>) {
+    let dev = use_first_device_with_auth();
+    let list = dev
+        .enumerate_app_name()
+        .expect("enumerate application fail");
     if list.contains(&TEST_APP_NAME_1.to_string()) {
         println!("going to open app: {}", TEST_APP_NAME_1);
-        return dev.open_app(TEST_APP_NAME_1).and_then(|app| {
-            app.clear_secure_state()?;
-            Ok(app)
-        });
+        let app = dev
+            .open_app(TEST_APP_NAME_1)
+            .expect("Open application fail");
+        let _ = app.clear_secure_state();
+        return (dev, app);
     }
     println!("going to create app: {}", TEST_APP_NAME_1);
     let attr = AppAttr {
@@ -62,21 +69,32 @@ pub fn get_or_create_test_app_1() -> Result<Box<dyn SkfApp>> {
         user_pin_retry_count: 8,
         create_file_rights: FILE_PERM_EVERYONE,
     };
-    dev.create_app(TEST_APP_NAME_1, &attr).and_then(|app| {
-        app.clear_secure_state()?;
-        Ok(app)
-    })
+    let app = dev
+        .create_app(TEST_APP_NAME_1, &attr)
+        .expect("Create application fail");
+    let _ = app.clear_secure_state();
+    (dev, app)
 }
 
-pub fn get_or_create_test_container_1() -> Result<Box<dyn SkfContainer>> {
-    let app = get_or_create_test_app_1()?;
-    let list = app.enumerate_container_name()?;
+pub fn get_or_create_test_container_1(
+) -> (Box<dyn SkfDevice>, Box<dyn SkfApp>, Box<dyn SkfContainer>) {
+    let (dev, app) = get_or_create_test_app_1();
+    verify_admin_pin(app.as_ref()).expect("Verify admin pin fail");
+    let list = app
+        .enumerate_container_name()
+        .expect("enumerate container fail");
     if list.contains(&TEST_CONTAINER_NAME_1.to_string()) {
         println!("going to open container: {}", TEST_CONTAINER_NAME_1);
-        return app.open_container(TEST_CONTAINER_NAME_1);
+        let container = app
+            .create_container(TEST_CONTAINER_NAME_1)
+            .expect("open container fail");
+        return (dev, app, container);
     }
     println!("going to create container: {}", TEST_CONTAINER_NAME_1);
-    app.create_container(TEST_CONTAINER_NAME_1)
+    let container = app
+        .create_container(TEST_CONTAINER_NAME_1)
+        .expect("Create container fail");
+    (dev, app, container)
 }
 
 pub fn verify_admin_pin(app: &dyn SkfApp) -> Result<()> {

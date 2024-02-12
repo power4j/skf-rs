@@ -2,7 +2,7 @@ mod common;
 
 use crate::common::{
     get_or_create_test_app_1, get_or_create_test_container_1, verify_admin_pin, verify_user_pin,
-    TEST_USER_PIN,
+    TEST_ADMIN_PIN, TEST_USER_PIN,
 };
 use skf_rs::helper::describe_result;
 use skf_rs::{FileAttr, PIN_TYPE_USER};
@@ -10,7 +10,7 @@ use skf_rs::{FileAttr, PIN_TYPE_USER};
 #[test]
 #[ignore]
 fn invoke_app_security_fn() {
-    let app = get_or_create_test_app_1().unwrap();
+    let (_dev, app) = get_or_create_test_app_1();
 
     let ret = app.pin_info(PIN_TYPE_USER);
     println!("pin_info result: {:?}", &ret);
@@ -24,7 +24,7 @@ fn invoke_app_security_fn() {
     let ret = app.pin_info(PIN_TYPE_USER);
     println!("pin_info result: {:?}", &ret);
 
-    let ret = app.unblock_pin(TEST_USER_PIN, TEST_USER_PIN);
+    let ret = app.unblock_pin(TEST_ADMIN_PIN, TEST_USER_PIN);
     println!("unblock_pin result: {:?}", &ret);
 
     let ret = app.clear_secure_state();
@@ -34,7 +34,7 @@ fn invoke_app_security_fn() {
 #[test]
 #[ignore]
 fn invoke_file_manager_fn() {
-    let app = get_or_create_test_app_1().unwrap();
+    let (_dev, app) = get_or_create_test_app_1();
 
     let ret = app.enumerate_file_name();
     println!("invoke enumerate_file_name result: {:?}", &ret);
@@ -58,7 +58,7 @@ fn invoke_file_manager_fn() {
 #[test]
 #[ignore]
 fn invoke_container_manager_fn() {
-    let app = get_or_create_test_app_1().unwrap();
+    let (_dev, app) = get_or_create_test_app_1();
 
     let ret = verify_admin_pin(app.as_ref());
     println!("invoke verify_admin_pin result: {:?}", &ret);
@@ -85,11 +85,12 @@ fn invoke_container_manager_fn() {
 #[test]
 #[ignore]
 fn invoke_container_fn() {
-    let container = get_or_create_test_container_1().unwrap();
+    let (_dev, _app, container) = get_or_create_test_container_1();
 
     let ret = container.get_type();
     println!("invoke get_type result: {:?}", &ret);
 
+    // fake cert data
     let ret = container.import_certificate(true, &[0u8; 256]);
     println!(
         "invoke import_certificate result: {:?}",

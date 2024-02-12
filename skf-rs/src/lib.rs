@@ -172,6 +172,8 @@ pub trait DeviceCtl {
     /// [alg_id] - The algorithm id,see [CryptoAlgorithm]
     ///
     /// [key] - The symmetric key
+    /// ## Owner object lifetime requirement
+    /// If owner object([SkfDevice]) is dropped, the key will be invalid
     fn set_symmetric_key(&self, alg_id: u32, key: &[u8]) -> Result<Box<dyn ManagedKey>>;
 }
 
@@ -193,11 +195,15 @@ pub trait AppManager {
     /// [name] - The app name
     ///
     /// [attr] - The attribute of app
+    /// ## Owner object lifetime requirement
+    /// If owner object([SkfDevice]) is dropped, the `SkfApp` object will be invalid
     fn create_app(&self, name: &str, attr: &AppAttr) -> Result<Box<dyn SkfApp>>;
 
     /// Open app
     ///
     /// [name] - The app name to open
+    /// ## Owner object lifetime requirement
+    /// If owner object([SkfDevice]) is dropped, the `SkfApp` object will be invalid
     fn open_app(&self, name: &str) -> Result<Box<dyn SkfApp>>;
     /// Delete app
     ///
@@ -369,6 +375,7 @@ pub trait ContainerManager {
     ///
     /// [name] - The container name
     fn open_container(&self, name: &str) -> Result<Box<dyn SkfContainer>>;
+
     /// Delete container by name
     ///
     /// [name] - The container name
@@ -387,6 +394,8 @@ const CONTAINER_TYPE_ECC: u32 = 0;
 /// Represents a Container instance
 /// ## Close
 /// Container instance is closed when `Drop`
+/// ## Owner object lifetime requirement
+/// If owner object([SkfApp]) is dropped, the `SkfContainer` object will be invalid
 pub trait SkfContainer {
     /// Get container type,the value of type can be:
     /// - [CONTAINER_TYPE_UNKNOWN]
