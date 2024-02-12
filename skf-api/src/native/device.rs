@@ -33,16 +33,16 @@ extern "C" {
         event: *mut ULONG,
     ) -> ULONG;
 
-    ///	取消等待设备插拔事件
+    /// 取消等待设备插拔事件
     pub fn SKF_CancelWaitForDevEvent() -> ULONG;
 
-    ///	获得当前系统中的设备列表
+    /// 获得当前系统中的设备列表
     ///
-    ///	[b_present] `[IN]`为TRUE表示取当前设备状态为存在的设备列表。为FALSE表示取当前驱动支持的设备列表
+    /// [b_present] `[IN]`为TRUE表示取当前设备状态为存在的设备列表。为FALSE表示取当前驱动支持的设备列表
     ///
-    ///	[sz_name_list] `[OUT]`设备名称列表。如果该参数为NULL，将由 `size` 返回所需要的内存空间大小。每个设备的名称以单个`'\0'`结束，以双`'\0'`表示列表的结束
+    /// [sz_name_list] `[OUT]`设备名称列表。如果该参数为NULL，将由 `size` 返回所需要的内存空间大小。每个设备的名称以单个`'\0'`结束，以双`'\0'`表示列表的结束
     ///
-    ///	[size] `[IN,OUT]`输入参数，输入设备名称列表的缓冲区长度，输出参数，返回szNameList所需要的空间大小
+    /// [size] `[IN,OUT]`输入参数，输入设备名称列表的缓冲区长度，输出参数，返回szNameList所需要的空间大小
     ///
     pub fn SKF_EnumDev(b_present: BOOL, sz_name_list: LPSTR, size: *mut ULONG) -> ULONG;
 

@@ -1,11 +1,5 @@
 use crate::native::types::{DeviceInfo, FileAttribute, Version};
 
-impl Default for Version {
-    fn default() -> Self {
-        Self { major: 0, minor: 0 }
-    }
-}
-
 impl Default for DeviceInfo {
     fn default() -> Self {
         Self {
@@ -29,13 +23,3 @@ impl Default for DeviceInfo {
     }
 }
 
-impl Default for FileAttribute {
-    fn default() -> Self {
-        Self {
-            file_name: [0; 32],
-            file_size: 0,
-            read_rights: 0,
-            write_rights: 0,
-        }
-    }
-}

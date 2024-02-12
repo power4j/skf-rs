@@ -57,7 +57,7 @@ pub const SECURE_USER_ACCOUNT: UINT32 = 0x00000010;
 pub const SECURE_EVERYONE_ACCOUNT: UINT32 = 0x000000FF;
 
 /// The structure of `VERSION`
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone,Default)]
 #[repr(C, packed(1))]
 pub struct Version {
     pub major: BYTE,
@@ -172,7 +172,7 @@ pub struct BlockCipherParam {
 }
 
 /// The structure of `FILEATTRIBUTE`
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone,Default)]
 #[repr(C, packed(1))]
 pub struct FileAttribute {
     pub file_name: [CHAR; 32],
