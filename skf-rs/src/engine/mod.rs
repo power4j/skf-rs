@@ -36,8 +36,7 @@ impl Engine {
 
     /// Get device manager instance
     pub fn device_manager_arc(&self) -> Result<Arc<dyn DeviceManager + Send + Sync>> {
-        let ctl = manager::ManagerImpl::new(&self.lib)?;
-        Ok(Arc::new(ctl))
+        self.device_manager().map(|v| Arc::from(v))
     }
 
     /// Get crypto service
