@@ -315,11 +315,18 @@ pub const FILE_PERM_EVERYONE: u32 = 0x000000FF;
 #[derive(Debug, Default)]
 pub struct FileAttr {
     pub file_name: String,
-    pub file_size: u32,
+    pub file_size: usize,
     pub read_rights: u32,
     pub write_rights: u32,
 }
 
+#[derive(Debug, Default)]
+pub struct FileAttrBuilder {
+    file_name: String,
+    file_size: usize,
+    read_rights: u32,
+    write_rights: u32,
+}
 pub trait FileManager {
     ///  Enumerate all file in the app,return file names
     fn enumerate_file_name(&self) -> Result<Vec<String>>;
@@ -347,7 +354,7 @@ pub trait FileManager {
     ///
     /// ## specification note
     /// actual read size may be less than [size]
-    fn read_file(&self, name: &str, offset: u32, size: u32) -> Result<Vec<u8>>;
+    fn read_file(&self, name: &str, offset: u32, size: usize) -> Result<Vec<u8>>;
     /// Write date to file
     ///
     /// [name] - The file name

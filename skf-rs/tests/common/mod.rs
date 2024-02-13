@@ -86,7 +86,7 @@ pub fn get_or_create_test_container_1(
     if list.contains(&TEST_CONTAINER_NAME_1.to_string()) {
         println!("going to open container: {}", TEST_CONTAINER_NAME_1);
         let container = app
-            .create_container(TEST_CONTAINER_NAME_1)
+            .open_container(TEST_CONTAINER_NAME_1)
             .expect("open container fail");
         return (dev, app, container);
     }

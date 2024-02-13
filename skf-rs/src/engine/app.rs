@@ -2,7 +2,8 @@ use crate::engine::symbol::{ModApp, ModContainer};
 use crate::error::{SkfErr, SkfPinVerifyError};
 use crate::helper::{mem, param};
 use crate::{
-    AppSecurity, ContainerManager, Error, FileAttr, FileManager, PinInfo, SkfApp, SkfContainer,
+    AppSecurity, ContainerManager, Error, FileAttr, FileAttrBuilder, FileManager, PinInfo, SkfApp,
+    SkfContainer, FILE_PERM_NONE,
 };
 use skf_api::native::error::{SAR_OK, SAR_PIN_INCORRECT};
 use skf_api::native::types::{FileAttribute, BOOL, BYTE, CHAR, FALSE, HANDLE, LPSTR, TRUE, ULONG};
@@ -225,7 +226,7 @@ impl FileManager for SkfAppImpl {
             func(
                 self.handle.clone(),
                 file_name.as_ptr() as LPSTR,
-                attr.file_size,
+                attr.file_size as ULONG,
                 attr.read_rights,
                 attr.write_rights,
             )
@@ -250,7 +251,7 @@ impl FileManager for SkfAppImpl {
     }
 
     #[instrument]
-    fn read_file(&self, name: &str, offset: u32, size: u32) -> crate::Result<Vec<u8>> {
+    fn read_file(&self, name: &str, offset: u32, size: usize) -> crate::Result<Vec<u8>> {
         let func = self.symbols.file_read.as_ref().expect("Symbol not load");
         let name = param::as_cstring("name", name)?;
         let mut buff = vec![0u8; size as usize];
@@ -260,7 +261,7 @@ impl FileManager for SkfAppImpl {
                 self.handle.clone(),
                 name.as_ptr() as LPSTR,
                 offset,
-                size,
+                size as ULONG,
                 buff.as_mut_ptr() as *mut BYTE,
                 &mut has_read,
             )
@@ -417,13 +418,52 @@ impl From<&FileAttribute> for FileAttr {
         };
         FileAttr {
             file_name,
-            file_size: value.file_size,
+            file_size: value.file_size as usize,
             read_rights: value.read_rights,
             write_rights: value.write_rights,
         }
     }
 }
 
+impl FileAttr {
+    pub fn builder() -> FileAttrBuilder {
+        FileAttrBuilder::new()
+    }
+}
+impl FileAttrBuilder {
+    pub fn new() -> Self {
+        Self {
+            file_name: "".into(),
+            file_size: 0,
+            read_rights: FILE_PERM_NONE,
+            write_rights: FILE_PERM_NONE,
+        }
+    }
+    pub fn file_name(mut self, val: impl Into<String>) -> Self {
+        self.file_name = val.into();
+        self
+    }
+    pub fn file_size(mut self, val: usize) -> Self {
+        self.file_size = val;
+        self
+    }
+    pub fn read_rights(mut self, val: u32) -> Self {
+        self.read_rights = val;
+        self
+    }
+    pub fn write_rights(mut self, val: u32) -> Self {
+        self.write_rights = val;
+        self
+    }
+    pub fn build(self) -> FileAttr {
+        FileAttr {
+            file_name: self.file_name,
+            file_size: self.file_size,
+            read_rights: self.read_rights,
+            write_rights: self.write_rights,
+        }
+    }
+}
 pub(crate) struct SkfContainerImpl {
     lib: Arc<libloading::Library>,
     symbols: ModContainer,
