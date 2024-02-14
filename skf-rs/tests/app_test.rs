@@ -5,7 +5,7 @@ use crate::common::{
     TEST_ADMIN_PIN, TEST_FILE_NAME_1, TEST_USER_PIN,
 };
 use skf_rs::helper::describe_result;
-use skf_rs::{FileAttr, FileAttrBuilder, FILE_PERM_EVERYONE, PIN_TYPE_USER};
+use skf_rs::{FileAttr, FILE_PERM_EVERYONE, PIN_TYPE_USER};
 
 #[test]
 #[ignore]
