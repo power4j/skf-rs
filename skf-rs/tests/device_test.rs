@@ -64,7 +64,7 @@ fn invoke_dev_auth() {
 #[test]
 #[ignore]
 fn invoke_change_auth_key() {
-    let dev = use_first_device().unwrap();
+    let dev = use_first_device();
     let auth_key = [0u8; 16];
     let ret = dev.change_device_auth_key(auth_key.as_slice());
     println!("invoke change_device_auth_key : {:?}", &ret);
@@ -73,7 +73,7 @@ fn invoke_change_auth_key() {
 #[test]
 #[ignore]
 fn invoke_app_ctl() {
-    let dev = use_first_device().unwrap();
+    let dev = use_first_device();
     let ret = dev.enumerate_app_name();
     println!("invoke enum_app : {:?}", &ret);
 
@@ -107,7 +107,7 @@ fn app_ctl_test() {
         create_file_rights: FILE_PERM_EVERYONE,
     };
 
-    let dev = use_first_device_with_auth().unwrap();
+    let dev = use_first_device_with_auth();
     let ret = dev.enumerate_app_name();
     println!("result of enum_app : {:?}", &ret);
     assert!(ret.is_ok());

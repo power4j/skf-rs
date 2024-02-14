@@ -117,7 +117,7 @@ fn file_ctl_test() {
     println!("enumerate_file_name result: {:?}", &ret);
     assert!(&ret.is_ok());
 
-    let attr = FileAttrBuilder::new()
+    let attr = FileAttr::builder()
         .file_size(FILE_SIZE)
         .file_name(FILE_NAME)
         .write_rights(WRITE_RIGHTS)

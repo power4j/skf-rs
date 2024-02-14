@@ -35,7 +35,7 @@ pub fn encrypt_auth_key_sm1_ecb(device: &dyn SkfDevice, key: &[u8]) -> Result<Ve
         feed_bit_len: 0,
     };
     let buff_size = pcks7_aligned_len(data.len(), block_size);
-    let _ = crypto.encrypt_init(key_handle.as_ref(), &param)?;
+    crypto.encrypt_init(key_handle.as_ref(), &param)?;
     crypto.encrypt(key_handle.as_ref(), &data, buff_size)
 }
 

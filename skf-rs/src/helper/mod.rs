@@ -53,7 +53,7 @@ pub mod mem {
             if *ptr.add(pos) == 0 && pos + 1 < len && *ptr.add(pos + 1) == 0 {
                 return Some(pos + 1);
             }
-            pos = pos + 1;
+            pos += 1;
         }
         None
     }
@@ -134,7 +134,7 @@ pub mod mem {
                     break;
                 }
             }
-            pos = pos + 1;
+            pos += 1;
         }
         list
     }
@@ -212,7 +212,7 @@ pub mod mem {
                 let list = parse_cstr_list(b"Hello\0World\0\0".as_ptr(), 13);
                 assert_eq!(
                     CStr::from_bytes_with_nul(b"Hello\0").unwrap(),
-                    *list.get(0).unwrap()
+                    *list.first().unwrap()
                 );
                 assert_eq!(
                     CStr::from_bytes_with_nul(b"World\0").unwrap(),

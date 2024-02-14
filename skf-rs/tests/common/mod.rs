@@ -1,7 +1,7 @@
-use skf_api::native::error::SAR_APPLICATION_NOT_EXISTS;
+
 use skf_rs::helper::auth::encrypt_auth_key_sm1_ecb;
 use skf_rs::{
-    AppAttr, DeviceManager, Engine, Error, LibLoader, Result, SkfApp, SkfBlockCipher, SkfContainer,
+    AppAttr, DeviceManager, Engine, LibLoader, Result, SkfApp, SkfBlockCipher, SkfContainer,
     SkfDevice, FILE_PERM_EVERYONE, PIN_TYPE_ADMIN, PIN_TYPE_USER,
 };
 
@@ -44,7 +44,7 @@ pub fn use_first_device_with_auth() -> Box<dyn SkfDevice> {
     let device = use_first_device();
     let auth_key =
         encrypt_auth_key_sm1_ecb(device.as_ref(), &TEST_AUTH_KEY).expect("auth key encrypt failed");
-    let _ = device
+    device
         .device_auth(auth_key.as_slice())
         .expect("device auth failed");
     device
@@ -100,9 +100,9 @@ pub fn get_or_create_test_container_1(
 }
 
 pub fn verify_admin_pin(app: &dyn SkfApp) -> Result<()> {
-    app.verify_pin(PIN_TYPE_ADMIN, &TEST_ADMIN_PIN)
+    app.verify_pin(PIN_TYPE_ADMIN, TEST_ADMIN_PIN)
 }
 
 pub fn verify_user_pin(app: &dyn SkfApp) -> Result<()> {
-    app.verify_pin(PIN_TYPE_USER, &TEST_USER_PIN)
+    app.verify_pin(PIN_TYPE_USER, TEST_USER_PIN)
 }

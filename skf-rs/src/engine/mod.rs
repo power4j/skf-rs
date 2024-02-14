@@ -36,7 +36,7 @@ impl Engine {
 
     /// Get device manager instance
     pub fn device_manager_arc(&self) -> Result<Arc<dyn DeviceManager + Send + Sync>> {
-        self.device_manager().map(|v| Arc::from(v))
+        self.device_manager().map(Arc::from)
     }
 
     /// get block cipher service
@@ -59,11 +59,11 @@ impl LibLoader {
     pub fn env_lookup() -> Result<Library> {
         use crate::error::Error::Other;
         use anyhow::anyhow;
-        if let Some(val) = env::var(Self::ENV_SKF_LIB_FILE).ok() {
+        if let Ok(val) = env::var(Self::ENV_SKF_LIB_FILE) {
             println!("{} detected: {}", Self::ENV_SKF_LIB_FILE, val);
             return Self::of_library_file(&val);
         }
-        if let Some(val) = env::var(Self::ENV_SKF_LIB_NAME).ok() {
+        if let Ok(val) = env::var(Self::ENV_SKF_LIB_NAME) {
             println!("{} detected: {}", Self::ENV_SKF_LIB_NAME, val);
             return Self::of_library_name(&val);
         }
@@ -81,7 +81,7 @@ impl LibLoader {
     pub fn of_library_name(name: impl AsRef<str>) -> Result<Library> {
         use std::ffi::OsStr;
         let file = libloading::library_filename(OsStr::new(name.as_ref()));
-        let lib = unsafe { Library::new(&file)? };
+        let lib = unsafe { Library::new(file)? };
         Ok(lib)
     }
 

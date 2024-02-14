@@ -38,7 +38,7 @@ impl ManagedKeyImpl {
 
     #[instrument]
     pub(crate) fn close(&self) -> Result<()> {
-        let ret = unsafe { (self.close_fn)(self.handle.clone()) };
+        let ret = unsafe { (self.close_fn)(self.handle) };
         trace!("[SKF_CloseHandle]: ret = {}", ret);
         if ret != SAR_OK {
             return Err(Error::Skf(SkfErr::of_code(ret)));
@@ -67,7 +67,7 @@ impl SkfBlockCipher for SkfBlockCipherImpl {
     fn encrypt_init(&self, key: &dyn ManagedKey, param: &BlockCipherParameter) -> Result<()> {
         let func = self.symbols.encrypt_init.as_ref().expect("Symbol not load");
         let param = make_cipher_param(param)?;
-        let ret = unsafe { func(key.as_ref().clone(), param) };
+        let ret = unsafe { func(*key.as_ref(), param) };
         trace!("[SKF_EncryptInit]: ret = {}", ret);
         if ret != SAR_OK {
             return Err(Error::Skf(SkfErr::of_code(ret)));
@@ -82,7 +82,7 @@ impl SkfBlockCipher for SkfBlockCipherImpl {
         let mut buffer = Vec::<u8>::with_capacity(buffer_size);
         let ret = unsafe {
             func(
-                key.as_ref().clone(),
+                *key.as_ref(),
                 data.as_ptr() as *const BYTE,
                 data.len() as ULONG,
                 buffer.as_mut_ptr() as *mut BYTE,
@@ -114,7 +114,7 @@ impl SkfBlockCipher for SkfBlockCipherImpl {
         let mut buffer = Vec::<u8>::with_capacity(buffer_size);
         let ret = unsafe {
             func(
-                key.as_ref().clone(),
+                *key.as_ref(),
                 data.as_ptr() as *const BYTE,
                 data.len() as ULONG,
                 buffer.as_mut_ptr() as *mut BYTE,
@@ -141,7 +141,7 @@ impl SkfBlockCipher for SkfBlockCipherImpl {
         let mut buffer = Vec::<u8>::with_capacity(buffer_size);
         let ret = unsafe {
             func(
-                key.as_ref().clone(),
+                *key.as_ref(),
                 buffer.as_mut_ptr() as *mut BYTE,
                 &mut len,
             )
@@ -159,7 +159,7 @@ impl SkfBlockCipher for SkfBlockCipherImpl {
     fn decrypt_init(&self, key: &dyn ManagedKey, param: &BlockCipherParameter) -> Result<()> {
         let func = self.symbols.decrypt_init.as_ref().expect("Symbol not load");
         let param = make_cipher_param(param)?;
-        let ret = unsafe { func(key.as_ref().clone(), param) };
+        let ret = unsafe { func(*key.as_ref(), param) };
         trace!("[SKF_DecryptInit]: ret = {}", ret);
         if ret != SAR_OK {
             return Err(Error::Skf(SkfErr::of_code(ret)));
@@ -174,7 +174,7 @@ impl SkfBlockCipher for SkfBlockCipherImpl {
         let mut buffer = Vec::<u8>::with_capacity(buffer_size);
         let ret = unsafe {
             func(
-                key.as_ref().clone(),
+                *key.as_ref(),
                 data.as_ptr() as *const BYTE,
                 data.len() as ULONG,
                 buffer.as_mut_ptr() as *mut BYTE,
@@ -206,7 +206,7 @@ impl SkfBlockCipher for SkfBlockCipherImpl {
         let mut buffer = Vec::<u8>::with_capacity(buffer_size);
         let ret = unsafe {
             func(
-                key.as_ref().clone(),
+                *key.as_ref(),
                 data.as_ptr() as *const BYTE,
                 data.len() as ULONG,
                 buffer.as_mut_ptr() as *mut BYTE,
@@ -233,7 +233,7 @@ impl SkfBlockCipher for SkfBlockCipherImpl {
         let mut buffer = Vec::<u8>::with_capacity(buffer_size);
         let ret = unsafe {
             func(
-                key.as_ref().clone(),
+                *key.as_ref(),
                 buffer.as_mut_ptr() as *mut BYTE,
                 &mut len,
             )

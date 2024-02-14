@@ -43,7 +43,7 @@ impl SkfDeviceImpl {
     #[instrument]
     fn disconnect(&mut self) -> Result<()> {
         if let Some(ref func) = self.symbols.dev_dis_connect {
-            let ret = unsafe { func(self.handle.clone()) };
+            let ret = unsafe { func(self.handle) };
             trace!("[SKF_DisConnectDev]: ret = {}", ret);
             if ret != SAR_OK {
                 return Err(Error::Skf(SkfErr::of_code(ret)));
@@ -66,7 +66,7 @@ impl DeviceSecurity for SkfDeviceImpl {
         let func = self.symbols.dev_auth.as_ref().expect("Symbol not load");
         let ret = unsafe {
             func(
-                self.handle.clone(),
+                self.handle,
                 data.as_ptr() as *const BYTE,
                 data.len() as ULONG,
             )
@@ -87,7 +87,7 @@ impl DeviceSecurity for SkfDeviceImpl {
             .expect("Symbol not load");
         let ret = unsafe {
             func(
-                self.handle.clone(),
+                self.handle,
                 key.as_ptr() as *const BYTE,
                 key.len() as ULONG,
             )
@@ -109,7 +109,7 @@ impl DeviceCtl for SkfDeviceImpl {
             .as_ref()
             .expect("Symbol not load");
         let label = param::as_cstring("label", label)?;
-        let ret = unsafe { func(self.handle.clone(), label.as_ptr() as *const CHAR) };
+        let ret = unsafe { func(self.handle, label.as_ptr() as *const CHAR) };
         trace!("[SKF_SetLabel]: ret = {}", ret);
         if ret != SAR_OK {
             return Err(Error::Skf(SkfErr::of_code(ret)));
@@ -121,7 +121,7 @@ impl DeviceCtl for SkfDeviceImpl {
     fn info(&self) -> Result<DeviceInformation> {
         let func = self.symbols.dev_get_info.as_ref().expect("Symbol not load");
         let mut data = DeviceInfo::default();
-        let ret = unsafe { func(self.handle.clone(), &mut data) };
+        let ret = unsafe { func(self.handle, &mut data) };
         trace!("[SKF_GetDevInfo]: ret = {}", ret);
         if ret != SAR_OK {
             return Err(Error::Skf(SkfErr::of_code(ret)));
@@ -135,7 +135,7 @@ impl DeviceCtl for SkfDeviceImpl {
         let timeout = timeout
             .map(|ref v| v.as_millis() as ULONG)
             .unwrap_or(DEV_LOCK_FOREVER);
-        let ret = unsafe { func(self.handle.clone(), timeout) };
+        let ret = unsafe { func(self.handle, timeout) };
         trace!("[SKF_LockDev]: ret = {}", ret);
         if ret != SAR_OK {
             return Err(Error::Skf(SkfErr::of_code(ret)));
@@ -146,7 +146,7 @@ impl DeviceCtl for SkfDeviceImpl {
     #[instrument]
     fn unlock(&self) -> Result<()> {
         let func = self.symbols.dev_unlock.as_ref().expect("Symbol not load");
-        let ret = unsafe { func(self.handle.clone()) };
+        let ret = unsafe { func(self.handle) };
         trace!("[SKF_UnlockDev]: ret = {}", ret);
         if ret != SAR_OK {
             return Err(Error::Skf(SkfErr::of_code(ret)));
@@ -160,7 +160,7 @@ impl DeviceCtl for SkfDeviceImpl {
         let mut buffer = Vec::<u8>::with_capacity(recv_capacity);
         let ret = unsafe {
             func(
-                self.handle.clone(),
+                self.handle,
                 command.as_ptr() as *const BYTE,
                 command.len() as ULONG,
                 buffer.as_mut_ptr() as *mut BYTE,
@@ -181,7 +181,7 @@ impl DeviceCtl for SkfDeviceImpl {
         let mut buffer = Vec::<u8>::with_capacity(len);
         let ret = unsafe {
             func(
-                self.handle.clone(),
+                self.handle,
                 buffer.as_mut_ptr() as *mut BYTE,
                 len as ULONG,
             )
@@ -203,7 +203,7 @@ impl DeviceCtl for SkfDeviceImpl {
         let mut handle: HANDLE = std::ptr::null_mut();
         let ret = unsafe {
             func(
-                self.handle.clone(),
+                self.handle,
                 key.as_ptr() as *const BYTE,
                 alg_id,
                 &mut handle,
@@ -223,13 +223,13 @@ impl AppManager for SkfDeviceImpl {
     fn enumerate_app_name(&self) -> Result<Vec<String>> {
         let func = self.symbols.app_enum.as_ref().expect("Symbol not load");
         let mut len: ULONG = 0;
-        let ret = unsafe { func(self.handle.clone(), std::ptr::null_mut(), &mut len) };
+        let ret = unsafe { func(self.handle, std::ptr::null_mut(), &mut len) };
         if ret != SAR_OK {
             return Err(Error::Skf(SkfErr::of_code(ret)));
         }
         trace!("[SKF_EnumApplication]: desired len = {}", len);
         let mut buff = Vec::<CHAR>::with_capacity(len as usize);
-        let ret = unsafe { func(self.handle.clone(), buff.as_mut_ptr(), &mut len) };
+        let ret = unsafe { func(self.handle, buff.as_mut_ptr(), &mut len) };
         trace!("[SKF_EnumApplication]: ret = {}", ret);
         if ret != SAR_OK {
             return Err(Error::Skf(SkfErr::of_code(ret)));
@@ -253,7 +253,7 @@ impl AppManager for SkfDeviceImpl {
         let mut handle: HANDLE = std::ptr::null_mut();
         let ret = unsafe {
             func(
-                self.handle.clone(),
+                self.handle,
                 name.as_ptr() as *const CHAR,
                 admin_pin.as_ptr() as *const CHAR,
                 attr.admin_pin_retry_count as DWORD,
@@ -276,7 +276,7 @@ impl AppManager for SkfDeviceImpl {
         let func = self.symbols.app_open.as_ref().expect("Symbol not load");
         let name = param::as_cstring("name", name)?;
         let mut handle: HANDLE = std::ptr::null_mut();
-        let ret = unsafe { func(self.handle.clone(), name.as_ptr() as LPSTR, &mut handle) };
+        let ret = unsafe { func(self.handle, name.as_ptr() as LPSTR, &mut handle) };
         trace!("[SKF_OpenApplication]: ret = {}", ret);
         if ret != SAR_OK {
             return Err(Error::Skf(SkfErr::of_code(ret)));
@@ -289,7 +289,7 @@ impl AppManager for SkfDeviceImpl {
     fn delete_app(&self, name: &str) -> Result<()> {
         let func = self.symbols.app_delete.as_ref().expect("Symbol not load");
         let name = param::as_cstring("name", name)?;
-        let ret = unsafe { func(self.handle.clone(), name.as_ptr() as LPSTR) };
+        let ret = unsafe { func(self.handle, name.as_ptr() as LPSTR) };
         trace!("[SKF_DeleteApplication]: ret = {}", ret);
         if ret != SAR_OK {
             return Err(Error::Skf(SkfErr::of_code(ret)));
@@ -346,15 +346,15 @@ impl From<&DeviceInfo> for DeviceInformation {
             major: value.firmware_version.major,
             minor: value.firmware_version.minor,
         };
-        let alg_sym_cap = value.alg_sym_cap as u32;
-        let alg_asym_cap = value.alg_asym_cap as u32;
-        let alg_hash_cap = value.alg_hash_cap as u32;
-        let dev_auth_alg_id = value.dev_auth_alg_id as u32;
-        let total_space = value.total_space as u32;
-        let free_space = value.free_space as u32;
-        let max_ecc_buffer_size = value.max_ecc_buffer_size as u32;
-        let max_buffer_size = value.max_buffer_size as u32;
-        let reserved = value.reserved.clone();
+        let alg_sym_cap = value.alg_sym_cap;
+        let alg_asym_cap = value.alg_asym_cap;
+        let alg_hash_cap = value.alg_hash_cap;
+        let dev_auth_alg_id = value.dev_auth_alg_id;
+        let total_space = value.total_space;
+        let free_space = value.free_space;
+        let max_ecc_buffer_size = value.max_ecc_buffer_size;
+        let max_buffer_size = value.max_buffer_size;
+        let reserved = value.reserved;
         Self {
             version,
             manufacturer,

@@ -35,7 +35,7 @@ impl SkfAppImpl {
 
     pub fn close(&mut self) -> crate::Result<()> {
         if let Some(ref func) = self.symbols.app_close {
-            let ret = unsafe { func(self.handle.clone()) };
+            let ret = unsafe { func(self.handle) };
             trace!("[SKF_CloseApplication]: ret = {}", ret);
             if ret != SAR_OK {
                 return Err(Error::Skf(SkfErr::of_code(ret)));
@@ -65,7 +65,7 @@ impl AppSecurity for SkfAppImpl {
         let mut count: ULONG = 0;
         let ret = unsafe {
             func(
-                self.handle.clone(),
+                self.handle,
                 pin_type as ULONG,
                 old_pin.as_ptr() as LPSTR,
                 new_pin.as_ptr() as LPSTR,
@@ -94,7 +94,7 @@ impl AppSecurity for SkfAppImpl {
         let mut count: ULONG = 0;
         let ret = unsafe {
             func(
-                self.handle.clone(),
+                self.handle,
                 pin_type as ULONG,
                 pin.as_ptr() as LPSTR,
                 &mut count,
@@ -125,7 +125,7 @@ impl AppSecurity for SkfAppImpl {
 
         let ret = unsafe {
             func(
-                self.handle.clone(),
+                self.handle,
                 pin_type as ULONG,
                 &mut max_retry_count,
                 &mut remain_retry_count,
@@ -151,7 +151,7 @@ impl AppSecurity for SkfAppImpl {
         let mut count: ULONG = 0;
         let ret = unsafe {
             func(
-                self.handle.clone(),
+                self.handle,
                 admin_pin.as_ptr() as LPSTR,
                 new_pin.as_ptr() as LPSTR,
                 &mut count,
@@ -179,7 +179,7 @@ impl AppSecurity for SkfAppImpl {
             .app_clear_secure_state
             .as_ref()
             .expect("Symbol not load");
-        let ret = unsafe { func(self.handle.clone()) };
+        let ret = unsafe { func(self.handle) };
         trace!("[SKF_ClearSecureState]: ret = {}", ret);
         match ret {
             SAR_OK => Ok(()),
@@ -197,13 +197,13 @@ impl FileManager for SkfAppImpl {
             .as_ref()
             .expect("Symbol not load");
         let mut len: ULONG = 0;
-        let ret = unsafe { func(self.handle.clone(), std::ptr::null_mut(), &mut len) };
+        let ret = unsafe { func(self.handle, std::ptr::null_mut(), &mut len) };
         if ret != SAR_OK {
             return Err(Error::Skf(SkfErr::of_code(ret)));
         }
         trace!("[SKF_EnumFiles]: desired len = {}", len);
         let mut buff = Vec::<CHAR>::with_capacity(len as usize);
-        let ret = unsafe { func(self.handle.clone(), buff.as_mut_ptr(), &mut len) };
+        let ret = unsafe { func(self.handle, buff.as_mut_ptr(), &mut len) };
         trace!("[SKF_EnumFiles]: ret = {}", ret);
         if ret != SAR_OK {
             return Err(Error::Skf(SkfErr::of_code(ret)));
@@ -224,7 +224,7 @@ impl FileManager for SkfAppImpl {
         let file_name = param::as_cstring("FileAttr.file_name", &attr.file_name)?;
         let ret = unsafe {
             func(
-                self.handle.clone(),
+                self.handle,
                 file_name.as_ptr() as LPSTR,
                 attr.file_size as ULONG,
                 attr.read_rights,
@@ -242,7 +242,7 @@ impl FileManager for SkfAppImpl {
     fn delete_file(&self, name: &str) -> crate::Result<()> {
         let func = self.symbols.file_delete.as_ref().expect("Symbol not load");
         let name = param::as_cstring("name", name)?;
-        let ret = unsafe { func(self.handle.clone(), name.as_ptr() as LPSTR) };
+        let ret = unsafe { func(self.handle, name.as_ptr() as LPSTR) };
         trace!("[SKF_DeleteFile]: ret = {}", ret);
         match ret {
             SAR_OK => Ok(()),
@@ -254,11 +254,11 @@ impl FileManager for SkfAppImpl {
     fn read_file(&self, name: &str, offset: u32, size: usize) -> crate::Result<Vec<u8>> {
         let func = self.symbols.file_read.as_ref().expect("Symbol not load");
         let name = param::as_cstring("name", name)?;
-        let mut buff = vec![0u8; size as usize];
+        let mut buff = vec![0u8; size];
         let mut has_read = size as ULONG;
         let ret = unsafe {
             func(
-                self.handle.clone(),
+                self.handle,
                 name.as_ptr() as LPSTR,
                 offset,
                 size as ULONG,
@@ -281,7 +281,7 @@ impl FileManager for SkfAppImpl {
         let name = param::as_cstring("name", name)?;
         let ret = unsafe {
             func(
-                self.handle.clone(),
+                self.handle,
                 name.as_ptr() as LPSTR,
                 offset,
                 data.as_ptr() as *const BYTE,
@@ -304,7 +304,7 @@ impl FileManager for SkfAppImpl {
             .expect("Symbol not load");
         let name = param::as_cstring("name", name)?;
         let mut attr = FileAttribute::default();
-        let ret = unsafe { func(self.handle.clone(), name.as_ptr() as LPSTR, &mut attr) };
+        let ret = unsafe { func(self.handle, name.as_ptr() as LPSTR, &mut attr) };
         trace!("[SKF_GetFileInfo]: ret = {}", ret);
         match ret {
             SAR_OK => Ok(FileAttr::from(&attr)),
@@ -322,13 +322,13 @@ impl ContainerManager for SkfAppImpl {
             .as_ref()
             .expect("Symbol not load");
         let mut len: ULONG = 0;
-        let ret = unsafe { func(self.handle.clone(), std::ptr::null_mut(), &mut len) };
+        let ret = unsafe { func(self.handle, std::ptr::null_mut(), &mut len) };
         if ret != SAR_OK {
             return Err(Error::Skf(SkfErr::of_code(ret)));
         }
         trace!("[SKF_EnumContainer]: desired len = {}", len);
         let mut buff = Vec::<CHAR>::with_capacity(len as usize);
-        let ret = unsafe { func(self.handle.clone(), buff.as_mut_ptr(), &mut len) };
+        let ret = unsafe { func(self.handle, buff.as_mut_ptr(), &mut len) };
         trace!("[SKF_EnumContainer]: ret = {}", ret);
         if ret != SAR_OK {
             return Err(Error::Skf(SkfErr::of_code(ret)));
@@ -355,7 +355,7 @@ impl ContainerManager for SkfAppImpl {
         let mut handle: HANDLE = std::ptr::null_mut();
         let ret = unsafe {
             func(
-                self.handle.clone(),
+                self.handle,
                 container_name.as_ptr() as LPSTR,
                 &mut handle,
             )
@@ -379,7 +379,7 @@ impl ContainerManager for SkfAppImpl {
         let mut handle: HANDLE = std::ptr::null_mut();
         let ret = unsafe {
             func(
-                self.handle.clone(),
+                self.handle,
                 container_name.as_ptr() as LPSTR,
                 &mut handle,
             )
@@ -400,7 +400,7 @@ impl ContainerManager for SkfAppImpl {
             .expect("Symbol not load");
         let container_name = param::as_cstring("name", name)?;
 
-        let ret = unsafe { func(self.handle.clone(), container_name.as_ptr() as LPSTR) };
+        let ret = unsafe { func(self.handle, container_name.as_ptr() as LPSTR) };
         trace!("[SKF_DeleteContainer]: ret = {}", ret);
         match ret {
             SAR_OK => Ok(()),
@@ -485,7 +485,7 @@ impl SkfContainerImpl {
 
     pub fn close(&mut self) -> crate::Result<()> {
         if let Some(ref func) = self.symbols.container_close {
-            let ret = unsafe { func(self.handle.clone()) };
+            let ret = unsafe { func(self.handle) };
             trace!("[SKF_CloseContainer]: ret = {}", ret);
             if ret != SAR_OK {
                 return Err(Error::Skf(SkfErr::of_code(ret)));
@@ -515,7 +515,7 @@ impl SkfContainer for SkfContainerImpl {
             .expect("Symbol not load");
         let mut type_value = 0 as ULONG;
 
-        let ret = unsafe { func(self.handle.clone(), &mut type_value) };
+        let ret = unsafe { func(self.handle, &mut type_value) };
         trace!("[SKF_GetContainerType]: ret = {}", ret);
         match ret {
             SAR_OK => Ok(type_value as u32),
@@ -536,7 +536,7 @@ impl SkfContainer for SkfContainerImpl {
 
         let ret = unsafe {
             func(
-                self.handle.clone(),
+                self.handle,
                 signer,
                 data.as_ptr() as *const BYTE,
                 data.len() as ULONG,
@@ -560,13 +560,13 @@ impl SkfContainer for SkfContainerImpl {
             false => FALSE,
         };
         let mut len: ULONG = 0;
-        let ret = unsafe { func(self.handle.clone(), signer, std::ptr::null_mut(), &mut len) };
+        let ret = unsafe { func(self.handle, signer, std::ptr::null_mut(), &mut len) };
         if ret != SAR_OK {
             return Err(Error::Skf(SkfErr::of_code(ret)));
         }
         trace!("[SKF_ExportCertificate]: desired len = {}", len);
         let mut buff = Vec::<CHAR>::with_capacity(len as usize);
-        let ret = unsafe { func(self.handle.clone(), signer, buff.as_mut_ptr(), &mut len) };
+        let ret = unsafe { func(self.handle, signer, buff.as_mut_ptr(), &mut len) };
         trace!("[SKF_ExportCertificate]: ret = {}", ret);
         if ret != SAR_OK {
             return Err(Error::Skf(SkfErr::of_code(ret)));

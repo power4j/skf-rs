@@ -21,7 +21,7 @@ fn main() {
     }
     println!("app list to delete : {:?}", &app_list);
     for ref name in app_list {
-        let ret = device.delete_app(&name);
+        let ret = device.delete_app(name);
         println!("result of delete app ({}): {:?}", name, ret);
     }
 }
