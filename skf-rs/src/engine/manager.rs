@@ -1,51 +1,52 @@
-use crate::engine::skf_dev::SkfDeviceImpl;
-use crate::engine::symbol::ModCtl;
-use crate::error::{InvalidArgumentError, SkfErr};
-use crate::helper::mem;
+use crate::engine::device::SkfDeviceImpl;
+use crate::engine::symbol::ModMag;
+use crate::error::SkfErr;
+use crate::helper::{mem, param};
+use crate::{DeviceManager, PluginEvent, SkfDevice};
 use crate::{Error, Result};
-use crate::{PluginEvent, SkfCtl, SkfDevice};
 use skf_api::native::error::SAR_OK;
-use skf_api::native::types::{BOOL, CHAR, DEV_HANDLE, ULONG};
+use skf_api::native::types::{BOOL, CHAR, HANDLE, ULONG};
 use std::fmt::Debug;
 use std::sync::Arc;
 use tracing::{instrument, trace};
 
-pub(crate) struct SkfCtlImpl {
+pub(crate) struct ManagerImpl {
     lib: Arc<libloading::Library>,
-    symbols: ModCtl,
+    symbols: ModMag,
 }
 
-impl SkfCtlImpl {
+impl ManagerImpl {
     /// Initialize
     ///
     /// [lib] - The library handle
     pub fn new(lib: &Arc<libloading::Library>) -> Result<Self> {
         let lc = Arc::clone(lib);
-        let symbols = ModCtl::load_symbols(lib)?;
+        let symbols = ModMag::load_symbols(lib)?;
         Ok(Self { lib: lc, symbols })
     }
 }
 
-impl Debug for SkfCtlImpl {
+impl Debug for ManagerImpl {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "SkfCtlImpl")
+        write!(f, "ManagerImpl")
     }
 }
 
-impl SkfCtl for SkfCtlImpl {
+impl DeviceManager for ManagerImpl {
     #[instrument]
-    fn enum_device(&self, presented_only: bool) -> Result<Vec<String>> {
+    fn enumerate_device_name(&self, presented_only: bool) -> Result<Vec<String>> {
         let func = self.symbols.enum_dev.as_ref().expect("Symbol not load");
         let mut len: ULONG = 0;
         let ret = unsafe { func(presented_only as BOOL, std::ptr::null_mut(), &mut len) };
         if ret != SAR_OK {
-            return Err(Error::Skf(SkfErr::with_default_msg(ret)));
+            return Err(Error::Skf(SkfErr::of_code(ret)));
         }
+        trace!("[SKF_EnumDev]: desired len = {}", len);
         let mut buff = Vec::<CHAR>::with_capacity(len as usize);
         let ret = unsafe { func(presented_only as BOOL, buff.as_mut_ptr(), &mut len) };
         trace!("[SKF_EnumDev]: ret = {}", ret);
         if ret != SAR_OK {
-            return Err(Error::Skf(SkfErr::with_default_msg(ret)));
+            return Err(Error::Skf(SkfErr::of_code(ret)));
         }
         unsafe { buff.set_len(len as usize) };
         trace!(
@@ -64,16 +65,11 @@ impl SkfCtl for SkfCtlImpl {
             .get_dev_state
             .as_ref()
             .expect("Symbol not load");
-        let device_name = std::ffi::CString::new(device_name).map_err(|e| {
-            InvalidArgumentError::new(
-                "parameter 'device_name' is invalid".to_string(),
-                anyhow::Error::new(e),
-            )
-        })?;
+        let device_name = param::as_cstring("device_name", device_name)?;
         let mut satate: ULONG = 0;
         let ret = unsafe { func(device_name.as_ptr() as *const CHAR, &mut satate) };
         if ret != SAR_OK {
-            return Err(Error::Skf(SkfErr::with_default_msg(ret)));
+            return Err(Error::Skf(SkfErr::of_code(ret)));
         }
         Ok(satate as u32)
     }
@@ -91,7 +87,7 @@ impl SkfCtl for SkfCtlImpl {
         let ret = unsafe { func(buff.as_mut_ptr(), &mut len, &mut event) };
         trace!("[SKF_WaitForDevEvent]: ret = {}", ret);
         if ret != SAR_OK {
-            return Err(Error::Skf(SkfErr::with_default_msg(ret)));
+            return Err(Error::Skf(SkfErr::of_code(ret)));
         }
         trace!(
             "[SKF_WaitForDevEvent]: event = {},data len = {}",
@@ -119,7 +115,7 @@ impl SkfCtl for SkfCtlImpl {
         let ret = unsafe { func() };
         trace!("[SKF_CancelWaitForDevEvent]: ret = {}", ret);
         if ret != SAR_OK {
-            return Err(Error::Skf(SkfErr::with_default_msg(ret)));
+            return Err(Error::Skf(SkfErr::of_code(ret)));
         }
         Ok(())
     }
@@ -127,17 +123,12 @@ impl SkfCtl for SkfCtlImpl {
     #[instrument]
     fn connect(&self, device_name: &str) -> Result<Box<dyn SkfDevice>> {
         let func = self.symbols.connect_dev.as_ref().expect("Symbol not load");
-        let device_name = std::ffi::CString::new(device_name).map_err(|e| {
-            InvalidArgumentError::new(
-                "parameter 'device_name' is invalid".to_string(),
-                anyhow::Error::new(e),
-            )
-        })?;
-        let mut handle: DEV_HANDLE = std::ptr::null_mut();
+        let device_name = param::as_cstring("device_name", device_name)?;
+        let mut handle: HANDLE = std::ptr::null_mut();
         let ret = unsafe { func(device_name.as_ptr() as *const CHAR, &mut handle) };
         trace!("[SKF_ConnectDev]: ret = {}", ret);
         if ret != SAR_OK {
-            return Err(Error::Skf(SkfErr::with_default_msg(ret)));
+            return Err(Error::Skf(SkfErr::of_code(ret)));
         }
         let dev = SkfDeviceImpl::new(handle, &self.lib)?;
         Ok(Box::new(dev))
@@ -147,7 +138,7 @@ impl SkfCtl for SkfCtlImpl {
         &self,
         selector: fn(Vec<&str>) -> Option<&str>,
     ) -> Result<Option<Box<dyn SkfDevice>>> {
-        let list = self.enum_device(true)?;
+        let list = self.enumerate_device_name(true)?;
         if list.is_empty() {
             Ok(None)
         } else {

@@ -1,4 +1,7 @@
+pub mod auth;
+
 pub mod mem {
+    use std::cmp::min;
     use std::ffi::CStr;
     use std::slice;
 
@@ -47,12 +50,10 @@ pub mod mem {
     pub const unsafe fn first_two_null_byte(ptr: *const u8, len: usize) -> Option<usize> {
         let mut pos = 0;
         while pos < len {
-            if *ptr.add(pos) == 0 {
-                if pos + 1 < len && *ptr.add(pos + 1) == 0 {
-                    return Some(pos + 1);
-                }
+            if *ptr.add(pos) == 0 && pos + 1 < len && *ptr.add(pos + 1) == 0 {
+                return Some(pos + 1);
             }
-            pos = pos + 1;
+            pos += 1;
         }
         None
     }
@@ -133,7 +134,7 @@ pub mod mem {
                     break;
                 }
             }
-            pos = pos + 1;
+            pos += 1;
         }
         list
     }
@@ -150,6 +151,54 @@ pub mod mem {
             .map(|s| s.to_string_lossy().to_string())
             .collect()
     }
+
+    /// Write string to buffer
+    ///
+    /// [src] - The string to write,if too long, it will be truncated
+    ///
+    /// [buffer] - The buffer to write to,at least one byte to fill with null byte
+    ///
+    /// ## Memory copy
+    ///
+    /// - if the string is too long,it will be truncated,and the last byte will be set to null byte
+    /// - if the string is smaller than the buffer size,it will be filled with null byte
+    ///
+    /// ## example
+    /// ```
+    /// use skf_rs::helper::mem::write_cstr;
+    ///
+    /// let mut buffer = [0u8; 11];
+    /// unsafe {
+    ///     write_cstr("Hello World", &mut buffer);
+    ///}
+    ///assert_eq!(b"Hello Worl\0", &buffer);
+    ///```
+    pub unsafe fn write_cstr(src: impl AsRef<str>, buffer: &mut [u8]) {
+        let src = src.as_ref().as_bytes();
+        let len = min(src.len(), buffer.len());
+        debug_assert!(len > 0);
+        unsafe {
+            std::ptr::copy(src.as_ptr(), buffer.as_mut_ptr(), len);
+        }
+        if len < buffer.len() {
+            buffer[len] = 0;
+        } else {
+            buffer[len - 1] = 0;
+        }
+    }
+
+    /// Write string to buffer
+    ///
+    /// [src] - The string to write
+    ///
+    /// [buffer_ptr] - The buffer to write to
+    ///
+    /// [buffer_len] - The length of the buffer
+    pub unsafe fn write_cstr_ptr(src: impl AsRef<str>, buffer_ptr: *mut u8, buffer_len: usize) {
+        let bytes = slice::from_raw_parts_mut(buffer_ptr, buffer_len);
+        write_cstr(src, bytes);
+    }
+
     #[cfg(test)]
     mod tests {
         use super::*;
@@ -163,7 +212,7 @@ pub mod mem {
                 let list = parse_cstr_list(b"Hello\0World\0\0".as_ptr(), 13);
                 assert_eq!(
                     CStr::from_bytes_with_nul(b"Hello\0").unwrap(),
-                    *list.get(0).unwrap()
+                    *list.first().unwrap()
                 );
                 assert_eq!(
                     CStr::from_bytes_with_nul(b"World\0").unwrap(),
@@ -171,5 +220,55 @@ pub mod mem {
                 );
             }
         }
+        #[test]
+        fn write_cstr_test() {
+            let input = "Hello World";
+            let mut buffer = [0u8; 12];
+            unsafe {
+                write_cstr(input, &mut buffer);
+            }
+            assert_eq!(b"Hello World\0", &buffer);
+
+            let mut buffer = [0u8; 11];
+            unsafe {
+                write_cstr(input, &mut buffer);
+            }
+            assert_eq!(b"Hello Worl\0", &buffer);
+
+            let mut buffer = [0u8; 1];
+            unsafe {
+                write_cstr(input, &mut buffer);
+            }
+            assert_eq!(b"\0", &buffer);
+        }
+    }
+}
+
+pub mod param {
+    use crate::error::InvalidArgumentError;
+    use crate::Result;
+    use std::ffi::CString;
+
+    /// Convert `&str` to `CString`
+    ///
+    /// ## Errors
+    /// This function will return an error if conversion from `&str` to `CString` fails,The error message use `param_name` to describe the parameter.
+    pub fn as_cstring(
+        param_name: impl AsRef<str>,
+        param_value: impl AsRef<str>,
+    ) -> Result<CString> {
+        let value = CString::new(param_value.as_ref()).map_err(|e| {
+            InvalidArgumentError::new(
+                format!("parameter '{}' is invalid", param_name.as_ref()),
+                Some(anyhow::Error::new(e)),
+            )
+        })?;
+        Ok(value)
+    }
+}
+pub fn describe_result<T>(result: &crate::Result<T>) -> String {
+    match result.as_ref() {
+        Ok(_) => "OK".to_string(),
+        Err(e) => format!("{:?}", e),
     }
 }

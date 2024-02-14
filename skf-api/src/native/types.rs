@@ -1,28 +1,26 @@
 //! GM/T 0016-2012 types
 //!
 //! see [GM/T 0016-2012](https://github.com/guanzhi/GM-Standards/blob/master/GMT%E5%AF%86%E7%A0%81%E8%A1%8C%E6%A0%87/GMT%200017-2012%20%E6%99%BA%E8%83%BD%E5%AF%86%E7%A0%81%E9%92%A5%E5%8C%99%E5%AF%86%E7%A0%81%E5%BA%94%E7%94%A8%E6%8E%A5%E5%8F%A3%E6%95%B0%E6%8D%AE%E6%A0%BC%E5%BC%8F%E8%A7%84%E8%8C%83.PDF)
-
-use std::ffi;
-
 #[derive(Copy, Clone, Debug, Default)]
 #[repr(C)]
 pub struct Void {
     _inner: [u8; 0],
+    _marker: core::marker::PhantomData<(*mut u8, core::marker::PhantomPinned)>,
 }
 
 pub type INT8 = i8;
 pub type INT16 = i16;
 pub type INT32 = i32;
-pub type SHORT = INT16;
-pub type LONG = INT32;
 pub type UINT8 = u8;
 pub type UINT16 = u16;
 pub type UINT32 = u32;
+pub type SHORT = INT16;
+pub type LONG = INT32;
 pub type UINT = INT32;
 pub type USHORT = UINT16;
 pub type ULONG = UINT32;
 
-pub type BOOL = bool;
+pub type BOOL = UINT32;
 pub type BYTE = UINT8;
 pub type CHAR = UINT8;
 
@@ -32,12 +30,10 @@ pub type DWORD = UINT32;
 pub type FLAGS = UINT32;
 
 pub type LPSTR = *const CHAR;
-pub type DEV_HANDLE = *const Void;
-pub type H_APPLICATION = ffi::c_void;
-pub type H_CONTAINER = ffi::c_void;
+pub type HANDLE = *const Void;
 
-pub const TRUE: BOOL = true as BOOL;
-pub const FALSE: BOOL = true as BOOL;
+pub const TRUE: BOOL = 0x00000001;
+pub const FALSE: BOOL = 0x00000000;
 
 pub const DEV_LOCK_FOREVER: ULONG = 0xffffffff;
 pub const ADMIN_TYPE: BYTE = 0x0;
@@ -61,9 +57,8 @@ pub const SECURE_USER_ACCOUNT: UINT32 = 0x00000010;
 pub const SECURE_EVERYONE_ACCOUNT: UINT32 = 0x000000FF;
 
 /// The structure of `VERSION`
-#[derive(Debug, Copy, Clone)]
-#[repr(C)]
-#[repr(align(1))]
+#[derive(Debug, Copy, Clone, Default)]
+#[repr(C, packed(1))]
 pub struct Version {
     pub major: BYTE,
     pub minor: BYTE,
@@ -71,8 +66,7 @@ pub struct Version {
 
 /// The structure of `DEVINFO`
 #[derive(Debug, Copy, Clone)]
-#[repr(C)]
-#[repr(align(1))]
+#[repr(C, packed(1))]
 pub struct DeviceInfo {
     pub version: Version,
     pub manufacturer: [CHAR; 64],
@@ -94,8 +88,7 @@ pub struct DeviceInfo {
 
 /// The structure of `RSAPUBLICKEYBLOB`
 #[derive(Debug, Copy, Clone)]
-#[repr(C)]
-#[repr(align(1))]
+#[repr(C, packed(1))]
 pub struct RSAPublicKeyBlob {
     pub alg_id: ULONG,
     pub bit_leb: ULONG,
@@ -106,8 +99,7 @@ pub struct RSAPublicKeyBlob {
 
 /// The structure of `RSAPRIVATEKEYBLOB`
 #[derive(Debug, Copy, Clone)]
-#[repr(C)]
-#[repr(align(1))]
+#[repr(C, packed(1))]
 pub struct RSAPrivateKeyBlob {
     pub alg_id: ULONG,
     pub bit_leb: ULONG,
@@ -123,8 +115,7 @@ pub struct RSAPrivateKeyBlob {
 
 /// The structure of `ECCPUBLICKEYBLOB`
 #[derive(Debug, Copy, Clone)]
-#[repr(C)]
-#[repr(align(1))]
+#[repr(C, packed(1))]
 pub struct ECCPublicKeyBlob {
     pub bit_leb: ULONG,
     pub x_coordinate: [BYTE; ECC_MAX_X_COORDINATE_BITS_LEN / 8],
@@ -133,8 +124,7 @@ pub struct ECCPublicKeyBlob {
 
 /// The structure of `ECCPRIVATEKEYBLOB`
 #[derive(Debug, Copy, Clone)]
-#[repr(C)]
-#[repr(align(1))]
+#[repr(C, packed(1))]
 pub struct ECCPrivateKeyBlob {
     pub bit_leb: ULONG,
     pub private_key: [BYTE; ECC_MAX_MODULUS_BITS_LEN / 8],
@@ -142,8 +132,7 @@ pub struct ECCPrivateKeyBlob {
 
 /// The structure of `ECCCIPHERBLOB`
 #[derive(Debug, Copy, Clone)]
-#[repr(C)]
-#[repr(align(1))]
+#[repr(C, packed(1))]
 pub struct ECCCipherBlob {
     pub x_coordinate: [BYTE; ECC_MAX_X_COORDINATE_BITS_LEN / 8],
     pub y_coordinate: [BYTE; ECC_MAX_Y_COORDINATE_BITS_LEN / 8],
@@ -154,8 +143,7 @@ pub struct ECCCipherBlob {
 
 /// The structure of `ECCSIGNATUREBLOB`
 #[derive(Debug, Copy, Clone)]
-#[repr(C)]
-#[repr(align(1))]
+#[repr(C, packed(1))]
 pub struct ECCSignatureBlob {
     pub r: [BYTE; ECC_MAX_X_COORDINATE_BITS_LEN / 8],
     pub s: [BYTE; ECC_MAX_Y_COORDINATE_BITS_LEN / 8],
@@ -163,8 +151,7 @@ pub struct ECCSignatureBlob {
 
 /// The structure of `ENVELOPEDKEYBLOB`
 #[derive(Debug, Copy, Clone)]
-#[repr(C)]
-#[repr(align(1))]
+#[repr(C, packed(1))]
 pub struct SKFEnvelopedKeyBlob {
     pub version: ULONG,
     pub sym_alg_id: ULONG,
@@ -176,8 +163,7 @@ pub struct SKFEnvelopedKeyBlob {
 
 /// The structure of `BLOCKCIPHERPARAM`
 #[derive(Debug, Copy, Clone)]
-#[repr(C)]
-#[repr(align(1))]
+#[repr(C, packed(1))]
 pub struct BlockCipherParam {
     pub iv: [BYTE; MAX_IV_LEN],
     pub iv_len: ULONG,
@@ -186,9 +172,8 @@ pub struct BlockCipherParam {
 }
 
 /// The structure of `FILEATTRIBUTE`
-#[derive(Debug, Copy, Clone)]
-#[repr(C)]
-#[repr(align(1))]
+#[derive(Debug, Copy, Clone, Default)]
+#[repr(C, packed(1))]
 pub struct FileAttribute {
     pub file_name: [CHAR; 32],
     pub file_size: ULONG,
