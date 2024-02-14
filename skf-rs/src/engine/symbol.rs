@@ -151,7 +151,10 @@ pub(crate) mod container_fn {
 #[allow(non_camel_case_types)]
 pub(crate) mod crypto_fn {
     use crate::engine::symbol::SymbolBundle;
-    use skf_api::native::types::{BlockCipherParam, BYTE, HANDLE, ULONG};
+    use skf_api::native::types::{
+        BlockCipherParam, ECCCipherBlob, ECCPrivateKeyBlob, ECCPublicKeyBlob, ECCSignatureBlob,
+        EnvelopedKeyBlob, BOOL, BYTE, HANDLE, ULONG,
+    };
     pub(crate) type SKF_GenRandom =
         SymbolBundle<unsafe extern "C" fn(HANDLE, *mut BYTE, ULONG) -> ULONG>;
     pub(crate) type SKF_CloseHandle = SymbolBundle<unsafe extern "C" fn(HANDLE) -> ULONG>;
@@ -177,6 +180,132 @@ pub(crate) mod crypto_fn {
     >;
     pub(super) type SKF_DecryptFinal =
         SymbolBundle<unsafe extern "C" fn(HANDLE, *mut BYTE, *mut ULONG) -> ULONG>;
+
+    pub(super) type SKF_GenECCKeyPair =
+        SymbolBundle<unsafe extern "C" fn(HANDLE, ULONG, key_blob: *mut ECCPublicKeyBlob) -> ULONG>;
+
+    pub(super) type SKF_ImportECCKeyPair =
+        SymbolBundle<unsafe extern "C" fn(HANDLE, *const EnvelopedKeyBlob) -> ULONG>;
+
+    pub(super) type SKF_ECCSignData = SymbolBundle<
+        unsafe extern "C" fn(HANDLE, *const BYTE, ULONG, *mut ECCSignatureBlob) -> ULONG,
+    >;
+
+    pub(super) type SKF_ECCVerify = SymbolBundle<
+        unsafe extern "C" fn(
+            HANDLE,
+            *const ECCPublicKeyBlob,
+            *const BYTE,
+            ULONG,
+            *const ECCSignatureBlob,
+        ) -> ULONG,
+    >;
+
+    pub(super) type SKF_ECCExportSessionKey = SymbolBundle<
+        unsafe extern "C" fn(
+            HANDLE,
+            ULONG,
+            *const ECCPublicKeyBlob,
+            *mut ECCCipherBlob,
+            *mut HANDLE,
+        ) -> ULONG,
+    >;
+
+    pub(super) type SKF_ExtECCEncrypt = SymbolBundle<
+        unsafe extern "C" fn(
+            HANDLE,
+            *const ECCPublicKeyBlob,
+            *const BYTE,
+            ULONG,
+            *mut ECCCipherBlob,
+        ) -> ULONG,
+    >;
+
+    pub(super) type SKF_ExtECCDecrypt = SymbolBundle<
+        unsafe extern "C" fn(
+            HANDLE,
+            *const ECCPrivateKeyBlob,
+            *const ECCCipherBlob,
+            *mut BYTE,
+            *mut ULONG,
+        ) -> ULONG,
+    >;
+
+    pub(super) type SKF_ExtECCSign = SymbolBundle<
+        unsafe extern "C" fn(
+            HANDLE,
+            *const ECCPrivateKeyBlob,
+            *const BYTE,
+            ULONG,
+            *mut ECCSignatureBlob,
+        ) -> ULONG,
+    >;
+
+    pub(super) type SKF_ExtECCVerify = SymbolBundle<
+        unsafe extern "C" fn(
+            HANDLE,
+            *const ECCPublicKeyBlob,
+            *const BYTE,
+            ULONG,
+            *mut ECCSignatureBlob,
+        ) -> ULONG,
+    >;
+
+    pub(super) type SKF_GenerateAgreementDataWithECC = SymbolBundle<
+        unsafe extern "C" fn(
+            HANDLE,
+            ULONG,
+            *const ECCPublicKeyBlob,
+            *const BYTE,
+            ULONG,
+            *mut HANDLE,
+        ) -> ULONG,
+    >;
+
+    pub(super) type SKF_GenerateAgreementDataAndKeyWithECC = SymbolBundle<
+        unsafe extern "C" fn(
+            HANDLE,
+            ULONG,
+            *const ECCPublicKeyBlob,
+            *const ECCPublicKeyBlob,
+            *mut ECCPublicKeyBlob,
+            *const BYTE,
+            ULONG,
+            *const BYTE,
+            ULONG,
+            *mut HANDLE,
+        ) -> ULONG,
+    >;
+
+    pub(super) type SKF_GenerateKeyWithECC = SymbolBundle<
+        unsafe extern "C" fn(
+            agreement_key: HANDLE,
+            *const ECCPublicKeyBlob,
+            *const ECCPublicKeyBlob,
+            *const BYTE,
+            ULONG,
+            *mut HANDLE,
+        ) -> ULONG,
+    >;
+
+    pub(super) type SKF_ExportPublicKey = SymbolBundle<
+        unsafe extern "C" fn(
+            HANDLE,
+            sign_flag: BOOL,
+            data: *mut BYTE,
+            data_len: *mut ULONG,
+        ) -> ULONG,
+    >;
+
+    pub(super) type SKF_ImportSessionKey = SymbolBundle<
+        unsafe extern "C" fn(
+            HANDLE,
+            ULONG,
+            data: *const BYTE,
+            data_len: ULONG,
+            key_handle: *mut HANDLE,
+        ) -> ULONG,
+    >;
 }
 
 #[derive(Default)]
