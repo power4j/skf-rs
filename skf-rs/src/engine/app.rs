@@ -353,13 +353,7 @@ impl ContainerManager for SkfAppImpl {
         let container_name = param::as_cstring("name", name)?;
 
         let mut handle: HANDLE = std::ptr::null_mut();
-        let ret = unsafe {
-            func(
-                self.handle,
-                container_name.as_ptr() as LPSTR,
-                &mut handle,
-            )
-        };
+        let ret = unsafe { func(self.handle, container_name.as_ptr() as LPSTR, &mut handle) };
         trace!("[SKF_CreateContainer]: ret = {}", ret);
         match ret {
             SAR_OK => Ok(Box::new(SkfContainerImpl::new(handle, &self.lib)?)),
@@ -377,13 +371,7 @@ impl ContainerManager for SkfAppImpl {
         let container_name = param::as_cstring("name", name)?;
 
         let mut handle: HANDLE = std::ptr::null_mut();
-        let ret = unsafe {
-            func(
-                self.handle,
-                container_name.as_ptr() as LPSTR,
-                &mut handle,
-            )
-        };
+        let ret = unsafe { func(self.handle, container_name.as_ptr() as LPSTR, &mut handle) };
         trace!("[SKF_OpenContainer]: ret = {}", ret);
         match ret {
             SAR_OK => Ok(Box::new(SkfContainerImpl::new(handle, &self.lib)?)),

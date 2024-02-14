@@ -85,13 +85,7 @@ impl DeviceSecurity for SkfDeviceImpl {
             .dev_change_auth_key
             .as_ref()
             .expect("Symbol not load");
-        let ret = unsafe {
-            func(
-                self.handle,
-                key.as_ptr() as *const BYTE,
-                key.len() as ULONG,
-            )
-        };
+        let ret = unsafe { func(self.handle, key.as_ptr() as *const BYTE, key.len() as ULONG) };
         trace!("[SKF_ChangeDevAuthKey]: ret = {}", ret);
         if ret != SAR_OK {
             return Err(Error::Skf(SkfErr::of_code(ret)));
@@ -179,13 +173,7 @@ impl DeviceCtl for SkfDeviceImpl {
     fn gen_random(&self, len: usize) -> Result<Vec<u8>> {
         let func = self.symbols.gen_random.as_ref().expect("Symbol not load");
         let mut buffer = Vec::<u8>::with_capacity(len);
-        let ret = unsafe {
-            func(
-                self.handle,
-                buffer.as_mut_ptr() as *mut BYTE,
-                len as ULONG,
-            )
-        };
+        let ret = unsafe { func(self.handle, buffer.as_mut_ptr() as *mut BYTE, len as ULONG) };
         trace!("[SKF_GenRandom]: ret = {}", ret);
         if ret != SAR_OK {
             return Err(Error::Skf(SkfErr::of_code(ret)));

@@ -139,13 +139,7 @@ impl SkfBlockCipher for SkfBlockCipherImpl {
             .expect("Symbol not load");
         let mut len = buffer_size as ULONG;
         let mut buffer = Vec::<u8>::with_capacity(buffer_size);
-        let ret = unsafe {
-            func(
-                *key.as_ref(),
-                buffer.as_mut_ptr() as *mut BYTE,
-                &mut len,
-            )
-        };
+        let ret = unsafe { func(*key.as_ref(), buffer.as_mut_ptr() as *mut BYTE, &mut len) };
         trace!("[SKF_EncryptFinal]: ret = {}", ret);
         if ret != SAR_OK {
             return Err(Error::Skf(SkfErr::of_code(ret)));
@@ -231,13 +225,7 @@ impl SkfBlockCipher for SkfBlockCipherImpl {
             .expect("Symbol not load");
         let mut len = buffer_size as ULONG;
         let mut buffer = Vec::<u8>::with_capacity(buffer_size);
-        let ret = unsafe {
-            func(
-                *key.as_ref(),
-                buffer.as_mut_ptr() as *mut BYTE,
-                &mut len,
-            )
-        };
+        let ret = unsafe { func(*key.as_ref(), buffer.as_mut_ptr() as *mut BYTE, &mut len) };
         trace!("[SKF_DecryptFinal]: ret = {}", ret);
         if ret != SAR_OK {
             return Err(Error::Skf(SkfErr::of_code(ret)));

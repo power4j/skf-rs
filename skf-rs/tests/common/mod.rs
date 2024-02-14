@@ -1,4 +1,3 @@
-
 use skf_rs::helper::auth::encrypt_auth_key_sm1_ecb;
 use skf_rs::{
     AppAttr, DeviceManager, Engine, LibLoader, Result, SkfApp, SkfBlockCipher, SkfContainer,
