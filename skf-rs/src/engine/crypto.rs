@@ -99,8 +99,17 @@ impl SkfBlockCipher for SkfBlockCipherImpl {
     }
 
     #[instrument(skip(key))]
-    fn encrypt_update(&self, key: &dyn ManagedKey, data: &[u8], buffer_size: usize) -> Result<Vec<u8>> {
-        let func = self.symbols.encrypt_update.as_ref().expect("Symbol not load");
+    fn encrypt_update(
+        &self,
+        key: &dyn ManagedKey,
+        data: &[u8],
+        buffer_size: usize,
+    ) -> Result<Vec<u8>> {
+        let func = self
+            .symbols
+            .encrypt_update
+            .as_ref()
+            .expect("Symbol not load");
         let mut len = buffer_size as ULONG;
         let mut buffer = Vec::<u8>::with_capacity(buffer_size);
         let ret = unsafe {
@@ -123,7 +132,11 @@ impl SkfBlockCipher for SkfBlockCipherImpl {
 
     #[instrument(skip(key))]
     fn encrypt_final(&self, key: &dyn ManagedKey, buffer_size: usize) -> Result<Vec<u8>> {
-        let func = self.symbols.encrypt_final.as_ref().expect("Symbol not load");
+        let func = self
+            .symbols
+            .encrypt_final
+            .as_ref()
+            .expect("Symbol not load");
         let mut len = buffer_size as ULONG;
         let mut buffer = Vec::<u8>::with_capacity(buffer_size);
         let ret = unsafe {
@@ -178,8 +191,17 @@ impl SkfBlockCipher for SkfBlockCipherImpl {
     }
 
     #[instrument(skip(key))]
-    fn decrypt_update(&self, key: &dyn ManagedKey, data: &[u8], buffer_size: usize) -> Result<Vec<u8>> {
-        let func = self.symbols.decrypt_update.as_ref().expect("Symbol not load");
+    fn decrypt_update(
+        &self,
+        key: &dyn ManagedKey,
+        data: &[u8],
+        buffer_size: usize,
+    ) -> Result<Vec<u8>> {
+        let func = self
+            .symbols
+            .decrypt_update
+            .as_ref()
+            .expect("Symbol not load");
         let mut len = buffer_size as ULONG;
         let mut buffer = Vec::<u8>::with_capacity(buffer_size);
         let ret = unsafe {
@@ -202,7 +224,11 @@ impl SkfBlockCipher for SkfBlockCipherImpl {
 
     #[instrument(skip(key))]
     fn decrypt_final(&self, key: &dyn ManagedKey, buffer_size: usize) -> Result<Vec<u8>> {
-        let func = self.symbols.decrypt_final.as_ref().expect("Symbol not load");
+        let func = self
+            .symbols
+            .decrypt_final
+            .as_ref()
+            .expect("Symbol not load");
         let mut len = buffer_size as ULONG;
         let mut buffer = Vec::<u8>::with_capacity(buffer_size);
         let ret = unsafe {

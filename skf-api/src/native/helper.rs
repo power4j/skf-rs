@@ -1,4 +1,4 @@
-use crate::native::types::{DeviceInfo, FileAttribute, Version};
+use crate::native::types::{DeviceInfo, Version};
 
 impl Default for DeviceInfo {
     fn default() -> Self {

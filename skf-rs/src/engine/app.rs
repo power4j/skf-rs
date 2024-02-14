@@ -427,11 +427,12 @@ impl From<&FileAttribute> for FileAttr {
 
 impl FileAttr {
     pub fn builder() -> FileAttrBuilder {
-        FileAttrBuilder::new()
+        FileAttrBuilder::default()
     }
 }
-impl FileAttrBuilder {
-    pub fn new() -> Self {
+
+impl Default for FileAttrBuilder {
+    fn default() -> Self {
         Self {
             file_name: "".into(),
             file_size: 0,
@@ -439,6 +440,8 @@ impl FileAttrBuilder {
             write_rights: FILE_PERM_NONE,
         }
     }
+}
+impl FileAttrBuilder {
     pub fn file_name(mut self, val: impl Into<String>) -> Self {
         self.file_name = val.into();
         self
@@ -465,7 +468,6 @@ impl FileAttrBuilder {
     }
 }
 pub(crate) struct SkfContainerImpl {
-    lib: Arc<libloading::Library>,
     symbols: ModContainer,
     handle: HANDLE,
 }
@@ -477,13 +479,8 @@ impl SkfContainerImpl {
     ///
     /// [lib] - The library handle
     pub fn new(handle: HANDLE, lib: &Arc<libloading::Library>) -> crate::Result<Self> {
-        let lc = Arc::clone(lib);
         let symbols = ModContainer::load_symbols(lib)?;
-        Ok(Self {
-            lib: lc,
-            symbols,
-            handle,
-        })
+        Ok(Self { symbols, handle })
     }
 
     pub fn close(&mut self) -> crate::Result<()> {

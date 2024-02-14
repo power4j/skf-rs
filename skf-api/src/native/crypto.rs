@@ -49,12 +49,11 @@ extern "C" {
     /// [device_handle] `[IN]`设备句柄
     pub fn SKF_GenRandom(device_handle: HANDLE, data: *mut BYTE, len: ULONG) -> ULONG;
 
-
     /// 关闭会话密钥、杂凑、消息认证码句柄
     ///
     /// [key_handle] `[IN]`密钥句柄
     pub fn SKF_CloseHandle(key_handle: HANDLE) -> ULONG;
-    
+
     /// 明文导入会话密钥，返回密钥句柄
     ///
     /// [device_handle] `[IN]`设备句柄
@@ -141,14 +140,12 @@ extern "C" {
     /// - 最后调用SKF_EncryptFinal结束多个分组数据的加密
     pub fn SKF_EncryptFinal(key_handle: HANDLE, data: *mut BYTE, data_len: *mut ULONG) -> ULONG;
 
-
     /// 初始化解密操作
     ///
     /// [key_handle] `[IN]`加密密钥句柄
     ///
     /// [decrypt_param] `[IN]`分组密码算法相关参数：算法标识号、密钥长度、初始向量、初始向量长度、填充方法、加密模式、反馈值的位长度
-    pub fn SKF_DecryptInit (key_handle: HANDLE, decrypt_param: BlockCipherParam) -> ULONG;
-
+    pub fn SKF_DecryptInit(key_handle: HANDLE, decrypt_param: BlockCipherParam) -> ULONG;
 
     /// 单个分组数据的解密操作
     ///
@@ -172,8 +169,8 @@ extern "C" {
         encrypted_data: *const BYTE,
         encrypted_len: ULONG,
         data: *mut BYTE,
-        data_len: *mut ULONG,) -> ULONG;
-
+        data_len: *mut ULONG,
+    ) -> ULONG;
 
     /// 多个分组数据的解密操作。
     /// 用指定解密密钥对指定数据进行解密，被解密的数据包含多个分组，解密后的明文保存到指定的缓冲区中。
@@ -196,9 +193,8 @@ extern "C" {
         encrypted_data: *const BYTE,
         encrypted_len: ULONG,
         data: *mut BYTE,
-        data_len: *mut ULONG,) -> ULONG;
-
-
+        data_len: *mut ULONG,
+    ) -> ULONG;
 
     /// 结束多个分组数据的解密
     ///
@@ -207,5 +203,9 @@ extern "C" {
     /// [decrypted_data] `[OUT]`解密结果的缓冲区,如果此参数为NULL时，由`decrypted_data_len`返回解密结果的长度
     ///
     /// [decrypted_data_len] `[IN，OUT]`调用时表示`decrypted_data`缓冲区的长度，返回解密结果的长度
-    pub fn SKF_DecryptFinal (key_handle: HANDLE,decrypted_data: *mut BYTE,decrypted_data_len: *mut ULONG,) -> ULONG;
+    pub fn SKF_DecryptFinal(
+        key_handle: HANDLE,
+        decrypted_data: *mut BYTE,
+        decrypted_data_len: *mut ULONG,
+    ) -> ULONG;
 }
