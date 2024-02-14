@@ -24,7 +24,7 @@ pub fn encrypt_auth_key_sm1_ecb(device: &dyn SkfDevice, key: &[u8]) -> Result<Ve
         return Err(Error::InvalidArgument(InvalidArgumentError::new(msg, None)));
     }
     let key_handle = device.set_symmetric_key(algorithm::SGD_SM1_ECB, key)?;
-    let crypto = device.crypto()?;
+    let crypto = device.block_cipher()?;
     let mut data = device.gen_random(8)?;
     if data.len() < block_size {
         data.extend(std::iter::repeat(0).take(block_size - data.len()));

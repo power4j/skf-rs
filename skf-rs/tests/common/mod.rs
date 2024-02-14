@@ -1,7 +1,7 @@
 use skf_api::native::error::SAR_APPLICATION_NOT_EXISTS;
 use skf_rs::helper::auth::encrypt_auth_key_sm1_ecb;
 use skf_rs::{
-    AppAttr, DeviceManager, Engine, Error, LibLoader, Result, SkfApp, SkfContainer, SkfCrypto,
+    AppAttr, DeviceManager, Engine, Error, LibLoader, Result, SkfApp, SkfBlockCipher, SkfContainer,
     SkfDevice, FILE_PERM_EVERYONE, PIN_TYPE_ADMIN, PIN_TYPE_USER,
 };
 
@@ -27,8 +27,10 @@ pub fn device_manager() -> Box<dyn DeviceManager + Send + Sync> {
         .device_manager()
         .expect("Cannot get device manager")
 }
-pub fn use_crypto() -> Box<dyn SkfCrypto + Send + Sync> {
-    get_engine().crypto().expect("Cannot get Crypto service")
+pub fn use_block_cipher() -> Box<dyn SkfBlockCipher + Send + Sync> {
+    get_engine()
+        .block_cipher()
+        .expect("Cannot get Crypto service")
 }
 pub fn use_first_device() -> Box<dyn SkfDevice> {
     let manager = device_manager();

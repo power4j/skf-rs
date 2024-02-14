@@ -6,7 +6,7 @@ use crate::error::SkfErr;
 use crate::helper::{mem, param};
 use crate::{
     AppAttr, AppManager, DeviceCtl, DeviceInformation, DeviceSecurity, ManagedKey, SkfApp,
-    SkfCrypto, SkfDevice, Version,
+    SkfBlockCipher, SkfDevice, Version,
 };
 use crate::{Error, Result};
 use skf_api::native::error::SAR_OK;
@@ -299,8 +299,8 @@ impl AppManager for SkfDeviceImpl {
 }
 
 impl SkfDevice for SkfDeviceImpl {
-    fn crypto(&self) -> Result<Box<dyn SkfCrypto + Send + Sync>> {
-        let crypto = crypto::SkfCryptoImpl::new(&self.lib)?;
+    fn block_cipher(&self) -> Result<Box<dyn SkfBlockCipher + Send + Sync>> {
+        let crypto = crypto::SkfBlockCipherImpl::new(&self.lib)?;
         Ok(Box::new(crypto))
     }
 }

@@ -1,4 +1,4 @@
-use crate::{DeviceManager, Result, SkfCrypto};
+use crate::{DeviceManager, Result, SkfBlockCipher};
 use libloading::Library;
 use std::env;
 use std::sync::Arc;
@@ -39,9 +39,9 @@ impl Engine {
         self.device_manager().map(|v| Arc::from(v))
     }
 
-    /// Get crypto service
-    pub fn crypto(&self) -> Result<Box<dyn SkfCrypto + Send + Sync>> {
-        let crypto = crypto::SkfCryptoImpl::new(&self.lib)?;
+    /// get block cipher service
+    pub fn block_cipher(&self) -> Result<Box<dyn SkfBlockCipher + Send + Sync>> {
+        let crypto = crypto::SkfBlockCipherImpl::new(&self.lib)?;
         Ok(Box::new(crypto))
     }
 }

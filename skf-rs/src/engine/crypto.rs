@@ -1,6 +1,6 @@
-use crate::engine::symbol::{crypto_fn, ModCrypto, SymbolBundle};
+use crate::engine::symbol::{crypto_fn, ModBlockCipher, SymbolBundle};
 use crate::error::{InvalidArgumentError, SkfErr};
-use crate::{BlockCipherParameter, Error, ManagedKey, Result, SkfCrypto};
+use crate::{BlockCipherParameter, Error, ManagedKey, Result, SkfBlockCipher};
 use skf_api::native::error::SAR_OK;
 use skf_api::native::types::{BlockCipherParam, BYTE, HANDLE, MAX_IV_LEN, ULONG};
 use std::fmt::Debug;
@@ -47,22 +47,22 @@ impl ManagedKeyImpl {
     }
 }
 
-pub(crate) struct SkfCryptoImpl {
-    symbols: ModCrypto,
+pub(crate) struct SkfBlockCipherImpl {
+    symbols: ModBlockCipher,
 }
-impl Debug for SkfCryptoImpl {
+impl Debug for SkfBlockCipherImpl {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "SkfCryptoImpl")
+        write!(f, "SkfBlockCipherImpl")
     }
 }
-impl SkfCryptoImpl {
+impl SkfBlockCipherImpl {
     pub fn new(lib: &Arc<libloading::Library>) -> Result<Self> {
-        let symbols = ModCrypto::load_symbols(lib)?;
+        let symbols = ModBlockCipher::load_symbols(lib)?;
         Ok(Self { symbols })
     }
 }
 
-impl SkfCrypto for SkfCryptoImpl {
+impl SkfBlockCipher for SkfBlockCipherImpl {
     #[instrument(skip(key))]
     fn encrypt_init(&self, key: &dyn ManagedKey, param: &BlockCipherParameter) -> Result<()> {
         let func = self.symbols.encrypt_init.as_ref().expect("Symbol not load");
@@ -99,13 +99,126 @@ impl SkfCrypto for SkfCryptoImpl {
     }
 
     #[instrument(skip(key))]
+    fn encrypt_update(&self, key: &dyn ManagedKey, data: &[u8], buffer_size: usize) -> Result<Vec<u8>> {
+        let func = self.symbols.encrypt_update.as_ref().expect("Symbol not load");
+        let mut len = buffer_size as ULONG;
+        let mut buffer = Vec::<u8>::with_capacity(buffer_size);
+        let ret = unsafe {
+            func(
+                key.as_ref().clone(),
+                data.as_ptr() as *const BYTE,
+                data.len() as ULONG,
+                buffer.as_mut_ptr() as *mut BYTE,
+                &mut len,
+            )
+        };
+        trace!("[SKF_EncryptUpdate]: ret = {}", ret);
+        if ret != SAR_OK {
+            return Err(Error::Skf(SkfErr::of_code(ret)));
+        }
+        trace!("[SKF_EncryptUpdate]: output len = {}", len);
+        unsafe { buffer.set_len(len as usize) };
+        Ok(buffer)
+    }
+
+    #[instrument(skip(key))]
+    fn encrypt_final(&self, key: &dyn ManagedKey, buffer_size: usize) -> Result<Vec<u8>> {
+        let func = self.symbols.encrypt_final.as_ref().expect("Symbol not load");
+        let mut len = buffer_size as ULONG;
+        let mut buffer = Vec::<u8>::with_capacity(buffer_size);
+        let ret = unsafe {
+            func(
+                key.as_ref().clone(),
+                buffer.as_mut_ptr() as *mut BYTE,
+                &mut len,
+            )
+        };
+        trace!("[SKF_EncryptFinal]: ret = {}", ret);
+        if ret != SAR_OK {
+            return Err(Error::Skf(SkfErr::of_code(ret)));
+        }
+        trace!("[SKF_EncryptFinal]: output len = {}", len);
+        unsafe { buffer.set_len(len as usize) };
+        Ok(buffer)
+    }
+
+    #[instrument(skip(key))]
     fn decrypt_init(&self, key: &dyn ManagedKey, param: &BlockCipherParameter) -> Result<()> {
-        todo!()
+        let func = self.symbols.decrypt_init.as_ref().expect("Symbol not load");
+        let param = make_cipher_param(param)?;
+        let ret = unsafe { func(key.as_ref().clone(), param) };
+        trace!("[SKF_DecryptInit]: ret = {}", ret);
+        if ret != SAR_OK {
+            return Err(Error::Skf(SkfErr::of_code(ret)));
+        }
+        Ok(())
     }
 
     #[instrument(skip(key))]
     fn decrypt(&self, key: &dyn ManagedKey, data: &[u8], buffer_size: usize) -> Result<Vec<u8>> {
-        todo!()
+        let func = self.symbols.decrypt.as_ref().expect("Symbol not load");
+        let mut len = buffer_size as ULONG;
+        let mut buffer = Vec::<u8>::with_capacity(buffer_size);
+        let ret = unsafe {
+            func(
+                key.as_ref().clone(),
+                data.as_ptr() as *const BYTE,
+                data.len() as ULONG,
+                buffer.as_mut_ptr() as *mut BYTE,
+                &mut len,
+            )
+        };
+        trace!("[SKF_Decrypt]: ret = {}", ret);
+        if ret != SAR_OK {
+            return Err(Error::Skf(SkfErr::of_code(ret)));
+        }
+        trace!("[SKF_Decrypt]: output len = {}", len);
+        unsafe { buffer.set_len(len as usize) };
+        Ok(buffer)
+    }
+
+    #[instrument(skip(key))]
+    fn decrypt_update(&self, key: &dyn ManagedKey, data: &[u8], buffer_size: usize) -> Result<Vec<u8>> {
+        let func = self.symbols.decrypt_update.as_ref().expect("Symbol not load");
+        let mut len = buffer_size as ULONG;
+        let mut buffer = Vec::<u8>::with_capacity(buffer_size);
+        let ret = unsafe {
+            func(
+                key.as_ref().clone(),
+                data.as_ptr() as *const BYTE,
+                data.len() as ULONG,
+                buffer.as_mut_ptr() as *mut BYTE,
+                &mut len,
+            )
+        };
+        trace!("[SKF_DecryptUpdate]: ret = {}", ret);
+        if ret != SAR_OK {
+            return Err(Error::Skf(SkfErr::of_code(ret)));
+        }
+        trace!("[SKF_DecryptUpdate]: output len = {}", len);
+        unsafe { buffer.set_len(len as usize) };
+        Ok(buffer)
+    }
+
+    #[instrument(skip(key))]
+    fn decrypt_final(&self, key: &dyn ManagedKey, buffer_size: usize) -> Result<Vec<u8>> {
+        let func = self.symbols.decrypt_final.as_ref().expect("Symbol not load");
+        let mut len = buffer_size as ULONG;
+        let mut buffer = Vec::<u8>::with_capacity(buffer_size);
+        let ret = unsafe {
+            func(
+                key.as_ref().clone(),
+                buffer.as_mut_ptr() as *mut BYTE,
+                &mut len,
+            )
+        };
+        trace!("[SKF_DecryptFinal]: ret = {}", ret);
+        if ret != SAR_OK {
+            return Err(Error::Skf(SkfErr::of_code(ret)));
+        }
+        trace!("[SKF_DecryptFinal]: output len = {}", len);
+        unsafe { buffer.set_len(len as usize) };
+        Ok(buffer)
     }
 }
 

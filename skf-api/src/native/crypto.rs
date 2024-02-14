@@ -49,6 +49,12 @@ extern "C" {
     /// [device_handle] `[IN]`设备句柄
     pub fn SKF_GenRandom(device_handle: HANDLE, data: *mut BYTE, len: ULONG) -> ULONG;
 
+
+    /// 关闭会话密钥、杂凑、消息认证码句柄
+    ///
+    /// [key_handle] `[IN]`密钥句柄
+    pub fn SKF_CloseHandle(key_handle: HANDLE) -> ULONG;
+    
     /// 明文导入会话密钥，返回密钥句柄
     ///
     /// [device_handle] `[IN]`设备句柄
@@ -135,9 +141,71 @@ extern "C" {
     /// - 最后调用SKF_EncryptFinal结束多个分组数据的加密
     pub fn SKF_EncryptFinal(key_handle: HANDLE, data: *mut BYTE, data_len: *mut ULONG) -> ULONG;
 
-    /// 关闭会话密钥、杂凑、消息认证码句柄
-    ///
-    /// [key_handle] `[IN]`密钥句柄
-    pub fn SKF_CloseHandle(key_handle: HANDLE) -> ULONG;
 
+    /// 初始化解密操作
+    ///
+    /// [key_handle] `[IN]`加密密钥句柄
+    ///
+    /// [decrypt_param] `[IN]`分组密码算法相关参数：算法标识号、密钥长度、初始向量、初始向量长度、填充方法、加密模式、反馈值的位长度
+    pub fn SKF_DecryptInit (key_handle: HANDLE, decrypt_param: BlockCipherParam) -> ULONG;
+
+
+    /// 单个分组数据的解密操作
+    ///
+    /// 用指定解密密钥对指定数据进行解密，被解密的数据只包含一个分组，解密后的明文保存到指定的缓冲区中。
+    ///
+    /// `SKF_Decrypt`只对单个分组数据进行解密，在调用`SKF_Decrypt`之前，必须调用`SKF_DecryptInit`初始化解密操作
+    ///
+    /// `SKF_Decypt`等价于先调用`SKF_DecryptUpdate`再调用`SKF_DecryptFinal`
+    ///
+    /// [key_handle] `[IN]`加密密钥句柄
+    ///
+    /// [encrypted_data] `[IN]`待解密数据
+    ///
+    /// [encrypted_len] `[IN]`待解密数据长度
+    ///
+    /// [data] `[OUT]` 指向解密后的数据缓冲区指针，当为NULL时可获得解密后的数据长度
+    ///
+    /// [data_len] `[IN，OUT]`返回解密后的数据长度
+    pub fn SKF_Decrypt(
+        key_handle: HANDLE,
+        encrypted_data: *const BYTE,
+        encrypted_len: ULONG,
+        data: *mut BYTE,
+        data_len: *mut ULONG,) -> ULONG;
+
+
+    /// 多个分组数据的解密操作。
+    /// 用指定解密密钥对指定数据进行解密，被解密的数据包含多个分组，解密后的明文保存到指定的缓冲区中。
+    ///
+    /// `SKF_DecryptUpdate`对多个分组数据进行解密，在调用SKF_DecryptUpdate之前，必须调用SKF_DecryptInit初始化解密操作。
+    ///
+    /// 在调用`SKF_DecryptUpdate`之后，必须调用SKF_DecryptFinal结束解密操作。
+    ///
+    /// [key_handle] `[IN]`加密密钥句柄
+    ///
+    /// [encrypted_data] `[IN]`待解密数据
+    ///
+    /// [encrypted_len] `[IN]`待解密数据长度
+    ///
+    /// [data] `[OUT]`指向解密后的数据缓冲区指针
+    ///
+    /// [data_len] `[IN，OUT]`返回解密后的数据长度
+    pub fn SKF_DecryptUpdate(
+        key_handle: HANDLE,
+        encrypted_data: *const BYTE,
+        encrypted_len: ULONG,
+        data: *mut BYTE,
+        data_len: *mut ULONG,) -> ULONG;
+
+
+
+    /// 结束多个分组数据的解密
+    ///
+    /// [key_handle] `[IN]`加密密钥句柄
+    ///
+    /// [decrypted_data] `[OUT]`解密结果的缓冲区,如果此参数为NULL时，由`decrypted_data_len`返回解密结果的长度
+    ///
+    /// [decrypted_data_len] `[IN，OUT]`调用时表示`decrypted_data`缓冲区的长度，返回解密结果的长度
+    pub fn SKF_DecryptFinal (key_handle: HANDLE,decrypted_data: *mut BYTE,decrypted_data_len: *mut ULONG,) -> ULONG;
 }

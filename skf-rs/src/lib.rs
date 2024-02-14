@@ -232,8 +232,8 @@ pub trait DeviceSecurity {
 /// ## Disconnect
 /// Device instance is disconnected when `Drop`
 pub trait SkfDevice: DeviceCtl + DeviceSecurity + AppManager {
-    /// create crypto service
-    fn crypto(&self) -> Result<Box<dyn SkfCrypto + Send + Sync>>;
+    /// get block cipher service
+    fn block_cipher(&self) -> Result<Box<dyn SkfBlockCipher + Send + Sync>>;
 }
 
 /// PIN type: Admin
@@ -320,7 +320,7 @@ pub struct FileAttr {
     pub write_rights: u32,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct FileAttrBuilder {
     file_name: String,
     file_size: usize,
@@ -439,8 +439,8 @@ pub struct BlockCipherParameter {
 /// key object is closed when `Drop`
 pub trait ManagedKey: AsRef<HANDLE> {}
 
-/// Represents a crypto service
-pub trait SkfCrypto {
+/// Block cipher service
+pub trait SkfBlockCipher {
     /// Initialize encryption
     ///
     /// [key] - The key object
@@ -457,11 +457,34 @@ pub trait SkfCrypto {
     /// see `SKF_Encrypt` for more details
     fn encrypt(&self, key: &dyn ManagedKey, data: &[u8], buffer_size: usize) -> Result<Vec<u8>>;
 
+    /// Encrypting multiple groups of data.
+    ///
+    /// [data] - The data to encrypt
+    ///
+    /// [buffer_size] - The buffer size to receive encrypted data,it depends on the encryption parameter passed by `encrypt_init` and crypto algorithm
+    ///
+    /// see `SKF_EncryptUpdate` for more details
+    fn encrypt_update(
+        &self,
+        key: &dyn ManagedKey,
+        data: &[u8],
+        buffer_size: usize,
+    ) -> Result<Vec<u8>>;
+
+    /// Finish encrypting multiple groups of data, return the remaining encrypted result
+    ///
+    /// [buffer_size] - The buffer size to receive encrypted data,it depends on the encryption parameter passed by `encrypt_init` and crypto algorithm
+    ///
+    /// see `SKF_EncryptFinal` for more details
+    fn encrypt_final(&self, key: &dyn ManagedKey, buffer_size: usize) -> Result<Vec<u8>>;
+
     /// Initialize decryption
     ///
     /// [key] - The key object
     ///
     /// [param] - The decryption parameter
+    ///
+    /// see `SKF_DecryptInit` for more details
     fn decrypt_init(&self, key: &dyn ManagedKey, param: &BlockCipherParameter) -> Result<()>;
 
     /// Decrypt data
@@ -472,4 +495,25 @@ pub trait SkfCrypto {
     ///
     /// see `SKF_Decrypt` for more details
     fn decrypt(&self, key: &dyn ManagedKey, data: &[u8], buffer_size: usize) -> Result<Vec<u8>>;
+
+    /// Decrypting multiple groups of data.
+    ///
+    /// [data] - The data to decrypt
+    ///
+    /// [buffer_size] - The buffer size to receive decrypted data,it depends on the encryption parameter passed by `decrypt_init` and crypto algorithm
+    ///
+    /// see `SKF_EncryptUpdate` for more details
+    fn decrypt_update(
+        &self,
+        key: &dyn ManagedKey,
+        data: &[u8],
+        buffer_size: usize,
+    ) -> Result<Vec<u8>>;
+
+    /// Finish decrypting multiple groups of data, return the remaining decrypted result
+    ///
+    /// [buffer_size] - The buffer size to receive decrypted data,it depends on the decryption parameter passed by `decrypt_init` and crypto algorithm
+    ///
+    /// see `SKF_EncryptFinal` for more details
+    fn decrypt_final(&self, key: &dyn ManagedKey, buffer_size: usize) -> Result<Vec<u8>>;
 }

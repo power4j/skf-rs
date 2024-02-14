@@ -162,6 +162,21 @@ pub(crate) mod crypto_fn {
     pub(super) type SKF_Encrypt = SymbolBundle<
         unsafe extern "C" fn(HANDLE, *const BYTE, ULONG, *mut BYTE, *mut ULONG) -> ULONG,
     >;
+    pub(super) type SKF_EncryptUpdate = SymbolBundle<
+        unsafe extern "C" fn(HANDLE, *const BYTE, ULONG, *mut BYTE, *mut ULONG) -> ULONG,
+    >;
+    pub(super) type SKF_EncryptFinal =
+        SymbolBundle<unsafe extern "C" fn(HANDLE, *mut BYTE, *mut ULONG) -> ULONG>;
+    pub(super) type SKF_DecryptInit =
+        SymbolBundle<unsafe extern "C" fn(HANDLE, BlockCipherParam) -> ULONG>;
+    pub(super) type SKF_Decrypt = SymbolBundle<
+        unsafe extern "C" fn(HANDLE, *const BYTE, ULONG, *mut BYTE, *mut ULONG) -> ULONG,
+    >;
+    pub(super) type SKF_DecryptUpdate = SymbolBundle<
+        unsafe extern "C" fn(HANDLE, *const BYTE, ULONG, *mut BYTE, *mut ULONG) -> ULONG,
+    >;
+    pub(super) type SKF_DecryptFinal =
+        SymbolBundle<unsafe extern "C" fn(HANDLE, *mut BYTE, *mut ULONG) -> ULONG>;
 }
 
 #[derive(Default)]
@@ -339,18 +354,37 @@ impl ModContainer {
 }
 
 #[derive(Default)]
-pub(crate) struct ModCrypto {
+pub(crate) struct ModBlockCipher {
     pub encrypt_init: Option<crypto_fn::SKF_EncryptInit>,
     pub encrypt: Option<crypto_fn::SKF_Encrypt>,
+    pub encrypt_update: Option<crypto_fn::SKF_EncryptUpdate>,
+    pub encrypt_final: Option<crypto_fn::SKF_EncryptFinal>,
+    pub decrypt_init: Option<crypto_fn::SKF_DecryptInit>,
+    pub decrypt: Option<crypto_fn::SKF_Decrypt>,
+    pub decrypt_update: Option<crypto_fn::SKF_DecryptUpdate>,
+    pub decrypt_final: Option<crypto_fn::SKF_DecryptFinal>,
 }
 
-impl ModCrypto {
+impl ModBlockCipher {
     pub fn load_symbols(lib: &Arc<Library>) -> crate::Result<Self> {
         let encrypt_init = Some(unsafe { SymbolBundle::new(lib, b"SKF_EncryptInit\0")? });
         let encrypt = Some(unsafe { SymbolBundle::new(lib, b"SKF_Encrypt\0")? });
+        let encrypt_update = Some(unsafe { SymbolBundle::new(lib, b"SKF_EncryptUpdate\0")? });
+        let encrypt_final = Some(unsafe { SymbolBundle::new(lib, b"SKF_EncryptFinal\0")? });
+
+        let decrypt_init = Some(unsafe { SymbolBundle::new(lib, b"SKF_DecryptInit\0")? });
+        let decrypt = Some(unsafe { SymbolBundle::new(lib, b"SKF_Decrypt\0")? });
+        let decrypt_update = Some(unsafe { SymbolBundle::new(lib, b"SKF_DecryptUpdate\0")? });
+        let decrypt_final = Some(unsafe { SymbolBundle::new(lib, b"SKF_DecryptFinal\0")? });
         let holder = Self {
             encrypt_init,
             encrypt,
+            encrypt_update,
+            encrypt_final,
+            decrypt_init,
+            decrypt,
+            decrypt_update,
+            decrypt_final,
         };
         Ok(holder)
     }
