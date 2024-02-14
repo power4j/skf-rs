@@ -1,11 +1,5 @@
 use crate::native::types::{DeviceInfo, Version};
 
-impl Default for Version {
-    fn default() -> Self {
-        Self { major: 0, minor: 0 }
-    }
-}
-
 impl Default for DeviceInfo {
     fn default() -> Self {
         Self {
