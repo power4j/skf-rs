@@ -152,7 +152,7 @@ pub struct ECCSignatureBlob {
 /// The structure of `ENVELOPEDKEYBLOB`
 #[derive(Debug, Copy, Clone)]
 #[repr(C, packed(1))]
-pub struct SKFEnvelopedKeyBlob {
+pub struct EnvelopedKeyBlob {
     pub version: ULONG,
     pub sym_alg_id: ULONG,
     pub bits: ULONG,
