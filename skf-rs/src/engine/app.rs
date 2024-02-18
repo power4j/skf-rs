@@ -339,7 +339,7 @@ impl ContainerManager for SkfAppImpl {
             String::from_utf8_lossy(&buff)
         );
         // The spec says string list end with two '\0',but vendor may not do it
-        let list = unsafe { mem::parse_cstr_list_lossy(buff.as_ptr() as *const u8, buff.len()) };
+        let list = unsafe { mem::parse_cstr_list_lossy(buff.as_ptr(), buff.len()) };
         Ok(list)
     }
 
@@ -401,7 +401,7 @@ impl SkfApp for SkfAppImpl {}
 impl From<&FileAttribute> for FileAttr {
     fn from(value: &FileAttribute) -> Self {
         let file_name: String = unsafe {
-            mem::parse_cstr_lossy(value.file_name.as_ptr() as *const u8, value.file_name.len())
+            mem::parse_cstr_lossy(value.file_name.as_ptr(), value.file_name.len())
                 .unwrap_or("".to_string())
         };
         FileAttr {

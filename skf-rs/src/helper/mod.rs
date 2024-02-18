@@ -1,11 +1,8 @@
-use crate::ECCEncryptedData;
-use skf_api::native::types::ULONG;
-
 pub mod auth;
 
 pub mod mem {
     use crate::ECCEncryptedData;
-    use skf_api::native::types::ECCPrivateKeyBlob;
+
     use std::cmp::min;
     use std::ffi::CStr;
     use std::slice;
@@ -282,10 +279,7 @@ pub mod mem {
                 assert_eq!(blob.x_coordinate, [1u8; 64]);
                 assert_eq!(blob.y_coordinate, [2u8; 64]);
                 assert_eq!(blob.hash, [3u8; 32]);
-                assert_eq!(
-                    unsafe { std::ptr::addr_of!(blob.cipher_len).read_unaligned() },
-                    5
-                );
+                assert_eq!(std::ptr::addr_of!(blob.cipher_len).read_unaligned(), 5);
                 assert_eq!(blob.cipher, [1u8]);
             }
         }

@@ -54,7 +54,7 @@ impl DeviceManager for ManagerImpl {
             String::from_utf8_lossy(&buff)
         );
         // The spec says string list end with two '\0',but vendor may not do it
-        let list = unsafe { mem::parse_cstr_list_lossy(buff.as_ptr() as *const u8, buff.len()) };
+        let list = unsafe { mem::parse_cstr_list_lossy(buff.as_ptr(), buff.len()) };
         Ok(list)
     }
 
@@ -94,7 +94,7 @@ impl DeviceManager for ManagerImpl {
             event,
             len
         );
-        let name = unsafe { mem::parse_cstr_lossy(buff.as_ptr() as *const u8, len as usize) };
+        let name = unsafe { mem::parse_cstr_lossy(buff.as_ptr(), len as usize) };
         let name = name.unwrap_or("".to_string());
         let event = event as u8;
         match event {

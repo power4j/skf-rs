@@ -3,7 +3,7 @@ use std::time::{Duration, SystemTime};
 mod common;
 use crate::common::{ext_ecc_key_pair, use_first_device_with_auth, TEST_ADMIN_PIN, TEST_USER_PIN};
 use common::use_first_device;
-use skf_api::native::types::{ECCPrivateKeyBlob, ECCPublicKeyBlob};
+
 use skf_rs::helper::describe_result;
 
 #[test]

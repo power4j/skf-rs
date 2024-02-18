@@ -238,12 +238,12 @@ impl DeviceCrypto for SkfDeviceImpl {
             if cb.cipher_len > 0 {
                 let len = cb.cipher_len as usize;
                 cipher = vec![0; len];
-                std::ptr::copy(cb.cipher.as_ptr() as *const u8, cipher.as_mut_ptr(), len);
+                std::ptr::copy(cb.cipher.as_ptr(), cipher.as_mut_ptr(), len);
             }
             ECCEncryptedData {
-                ec_x: cb.x_coordinate.clone(),
-                ec_y: cb.y_coordinate.clone(),
-                hash: cb.hash.clone(),
+                ec_x: cb.x_coordinate,
+                ec_y: cb.y_coordinate,
+                hash: cb.hash,
                 cipher,
             }
         };
@@ -355,7 +355,7 @@ impl AppManager for SkfDeviceImpl {
             String::from_utf8_lossy(&buff)
         );
         // The spec says string list end with two '\0',but vendor may not do it
-        let list = unsafe { mem::parse_cstr_list_lossy(buff.as_ptr() as *const u8, buff.len()) };
+        let list = unsafe { mem::parse_cstr_list_lossy(buff.as_ptr(), buff.len()) };
         Ok(list)
     }
 
@@ -432,26 +432,19 @@ impl From<&DeviceInfo> for DeviceInformation {
             minor: value.version.minor,
         };
         let manufacturer: String = unsafe {
-            mem::parse_cstr_lossy(
-                value.manufacturer.as_ptr() as *const u8,
-                value.manufacturer.len(),
-            )
-            .unwrap_or("".to_string())
+            mem::parse_cstr_lossy(value.manufacturer.as_ptr(), value.manufacturer.len())
+                .unwrap_or("".to_string())
         };
         let issuer: String = unsafe {
-            mem::parse_cstr_lossy(value.issuer.as_ptr() as *const u8, value.issuer.len())
+            mem::parse_cstr_lossy(value.issuer.as_ptr(), value.issuer.len())
                 .unwrap_or("".to_string())
         };
         let label: String = unsafe {
-            mem::parse_cstr_lossy(value.label.as_ptr() as *const u8, value.label.len())
-                .unwrap_or("".to_string())
+            mem::parse_cstr_lossy(value.label.as_ptr(), value.label.len()).unwrap_or("".to_string())
         };
         let serial_number = unsafe {
-            mem::parse_cstr_lossy(
-                value.serial_number.as_ptr() as *const u8,
-                value.serial_number.len(),
-            )
-            .unwrap_or("".to_string())
+            mem::parse_cstr_lossy(value.serial_number.as_ptr(), value.serial_number.len())
+                .unwrap_or("".to_string())
         };
         let hw_version = Version {
             major: value.hw_version.major,

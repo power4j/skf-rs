@@ -102,7 +102,7 @@ impl ECCCipherBlob {
             );
             std::ptr::copy(
                 self.cipher.as_ptr(),
-                v.as_mut_ptr().offset(Self::CIPHER_INDEX as isize),
+                v.as_mut_ptr().add(Self::CIPHER_INDEX),
                 self.cipher_len as usize,
             );
             v.set_len(self.dst_size());
