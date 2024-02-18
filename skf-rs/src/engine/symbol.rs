@@ -247,7 +247,7 @@ pub(crate) mod crypto_fn {
             *const ECCPublicKeyBlob,
             *const BYTE,
             ULONG,
-            *mut ECCSignatureBlob,
+            *const ECCSignatureBlob,
         ) -> ULONG,
     >;
 
@@ -352,6 +352,10 @@ pub(crate) struct ModDev {
     pub app_enum: Option<device_fn::SKF_EnumApplication>,
     pub gen_random: Option<crypto_fn::SKF_GenRandom>,
     pub sym_key_import: Option<crypto_fn::SKF_SetSymmKey>,
+    pub ecc_ext_encrypt: Option<crypto_fn::SKF_ExtECCEncrypt>,
+    pub ecc_ext_decrypt: Option<crypto_fn::SKF_ExtECCDecrypt>,
+    pub ecc_ext_sign: Option<crypto_fn::SKF_ExtECCSign>,
+    pub ecc_ext_verify: Option<crypto_fn::SKF_ExtECCVerify>,
 }
 
 impl ModDev {
@@ -371,6 +375,10 @@ impl ModDev {
         let app_enum = Some(unsafe { SymbolBundle::new(lib, b"SKF_EnumApplication\0")? });
         let gen_random = Some(unsafe { SymbolBundle::new(lib, b"SKF_GenRandom\0")? });
         let sym_key_import = Some(unsafe { SymbolBundle::new(lib, b"SKF_SetSymmKey\0")? });
+        let ecc_ext_encrypt = Some(unsafe { SymbolBundle::new(lib, b"SKF_ExtECCEncrypt\0")? });
+        let ecc_ext_decrypt = Some(unsafe { SymbolBundle::new(lib, b"SKF_ExtECCDecrypt\0")? });
+        let ecc_ext_sign = Some(unsafe { SymbolBundle::new(lib, b"SKF_ExtECCSign\0")? });
+        let ecc_ext_verify = Some(unsafe { SymbolBundle::new(lib, b"SKF_ExtECCVerify\0")? });
 
         let holder = Self {
             dev_set_label,
@@ -387,6 +395,10 @@ impl ModDev {
             app_enum,
             gen_random,
             sym_key_import,
+            ecc_ext_encrypt,
+            ecc_ext_decrypt,
+            ecc_ext_sign,
+            ecc_ext_verify,
         };
         Ok(holder)
     }

@@ -151,3 +151,48 @@ impl DeviceManager for ManagerImpl {
         }
     }
 }
+
+impl PluginEvent {
+    /// The device is plugged in
+    pub const EVENT_PLUGGED_IN: u8 = 1;
+
+    /// The device is unplugged
+    pub const EVENT_UNPLUGGED: u8 = 2;
+
+    pub fn new(device_name: impl Into<String>, event: u8) -> Self {
+        Self {
+            device_name: device_name.into(),
+            event,
+        }
+    }
+
+    pub fn plugged_in(device_name: impl AsRef<str>) -> Self {
+        Self {
+            device_name: device_name.as_ref().to_string(),
+            event: Self::EVENT_PLUGGED_IN,
+        }
+    }
+
+    pub fn unplugged(device_name: impl AsRef<str>) -> Self {
+        Self {
+            device_name: device_name.as_ref().to_string(),
+            event: Self::EVENT_UNPLUGGED,
+        }
+    }
+
+    pub fn is_plugged_in(&self) -> bool {
+        self.event == Self::EVENT_PLUGGED_IN
+    }
+
+    pub fn is_unplugged(&self) -> bool {
+        self.event == Self::EVENT_UNPLUGGED
+    }
+
+    pub fn event_description(&self) -> &'static str {
+        match self.event {
+            Self::EVENT_PLUGGED_IN => "plugged in",
+            Self::EVENT_UNPLUGGED => "unplugged",
+            _ => "unknown",
+        }
+    }
+}

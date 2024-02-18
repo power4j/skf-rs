@@ -5,13 +5,14 @@ use crate::engine::symbol::ModDev;
 use crate::error::SkfErr;
 use crate::helper::{mem, param};
 use crate::{
-    AppAttr, AppManager, DeviceCtl, DeviceInformation, DeviceSecurity, ManagedKey, SkfApp,
+    AppAttr, AppManager, DeviceCrypto, DeviceCtl, DeviceInformation, DeviceSecurity,
+    ECCEncryptedData, ECCPrivateKeyBlob, ECCPublicKeyBlob, ECCSignatureBlob, ManagedKey, SkfApp,
     SkfBlockCipher, SkfDevice, Version,
 };
 use crate::{Error, Result};
 use skf_api::native::error::SAR_OK;
 use skf_api::native::types::{
-    DeviceInfo, BYTE, CHAR, DEV_LOCK_FOREVER, DWORD, HANDLE, LPSTR, ULONG,
+    DeviceInfo, ECCCipherBlob, BYTE, CHAR, DEV_LOCK_FOREVER, DWORD, HANDLE, LPSTR, ULONG,
 };
 use std::fmt::Debug;
 use std::sync::Arc;
@@ -169,6 +170,9 @@ impl DeviceCtl for SkfDeviceImpl {
         unsafe { buffer.set_len(len as usize) };
         Ok(buffer)
     }
+}
+
+impl DeviceCrypto for SkfDeviceImpl {
     #[instrument]
     fn gen_random(&self, len: usize) -> Result<Vec<u8>> {
         let func = self.symbols.gen_random.as_ref().expect("Symbol not load");
@@ -182,6 +186,7 @@ impl DeviceCtl for SkfDeviceImpl {
         Ok(buffer)
     }
 
+    #[instrument]
     fn set_symmetric_key(&self, alg_id: u32, key: &[u8]) -> Result<Box<dyn ManagedKey>> {
         let func = self
             .symbols
@@ -204,8 +209,130 @@ impl DeviceCtl for SkfDeviceImpl {
         let managed_key = ManagedKeyImpl::try_new(handle, &self.lib)?;
         Ok(Box::new(managed_key))
     }
-}
 
+    fn ext_ecc_encrypt(&self, key: &ECCPublicKeyBlob, data: &[u8]) -> Result<ECCEncryptedData> {
+        let func = self
+            .symbols
+            .ecc_ext_encrypt
+            .as_ref()
+            .expect("Symbol not load");
+        let buff_size = ECCCipherBlob::size_of(data.len());
+        let mut buff: Vec<u8> = vec![0; buff_size];
+
+        let ret = unsafe {
+            func(
+                self.handle,
+                key as *const ECCPublicKeyBlob,
+                data.as_ptr() as *const BYTE,
+                data.len() as ULONG,
+                buff.as_mut_ptr() as *mut ECCCipherBlob,
+            )
+        };
+        trace!("[SKF_ExtECCEncrypt]: ret = {}", ret);
+        if ret != SAR_OK {
+            return Err(Error::Skf(SkfErr::of_code(ret)));
+        }
+        let blob = unsafe {
+            let cb = &*(buff.as_ptr() as *const ECCCipherBlob);
+            let mut cipher: Vec<u8> = vec![];
+            if cb.cipher_len > 0 {
+                let len = cb.cipher_len as usize;
+                cipher = vec![0; len];
+                std::ptr::copy(cb.cipher.as_ptr() as *const u8, cipher.as_mut_ptr(), len);
+            }
+            ECCEncryptedData {
+                ec_x: cb.x_coordinate.clone(),
+                ec_y: cb.y_coordinate.clone(),
+                hash: cb.hash.clone(),
+                cipher,
+            }
+        };
+        Ok(blob)
+    }
+
+    fn ext_ecc_decrypt(
+        &self,
+        key: &ECCPrivateKeyBlob,
+        cipher: &ECCEncryptedData,
+    ) -> Result<Vec<u8>> {
+        let func = self
+            .symbols
+            .ecc_ext_decrypt
+            .as_ref()
+            .expect("Symbol not load");
+        let cipher_mem = cipher.cipher_blob_bytes();
+        let mut buff: Vec<u8> = Vec::with_capacity(cipher.cipher.len());
+        let mut buff_len: ULONG = buff.len() as ULONG;
+
+        let ret = unsafe {
+            func(
+                self.handle,
+                key as *const ECCPrivateKeyBlob,
+                cipher_mem.as_ptr() as *const ECCCipherBlob,
+                buff.as_mut_ptr() as *mut BYTE,
+                &mut buff_len,
+            )
+        };
+        trace!("[SKF_ExtECCDecrypt]: ret = {}", ret);
+        if ret != SAR_OK {
+            return Err(Error::Skf(SkfErr::of_code(ret)));
+        }
+
+        trace!("[SKF_ExtECCDecrypt]: len = {}", buff_len);
+        unsafe { buff.set_len(buff_len as usize) };
+
+        Ok(buff)
+    }
+
+    fn ext_ecc_sign(&self, key: &ECCPrivateKeyBlob, data: &[u8]) -> Result<ECCSignatureBlob> {
+        let func = self.symbols.ecc_ext_sign.as_ref().expect("Symbol not load");
+
+        let mut sign = ECCSignatureBlob::default();
+        let ret = unsafe {
+            func(
+                self.handle,
+                key as *const ECCPrivateKeyBlob,
+                data.as_ptr() as *const BYTE,
+                data.len() as ULONG,
+                &mut sign,
+            )
+        };
+        trace!("[SKF_ExtECCSign]: ret = {}", ret);
+        if ret != SAR_OK {
+            return Err(Error::Skf(SkfErr::of_code(ret)));
+        }
+
+        Ok(sign)
+    }
+
+    fn ext_ecc_verify(
+        &self,
+        key: &ECCPublicKeyBlob,
+        data: &[u8],
+        signature: &ECCSignatureBlob,
+    ) -> Result<()> {
+        let func = self
+            .symbols
+            .ecc_ext_verify
+            .as_ref()
+            .expect("Symbol not load");
+
+        let ret = unsafe {
+            func(
+                self.handle,
+                key as *const ECCPublicKeyBlob,
+                data.as_ptr() as *const BYTE,
+                data.len() as ULONG,
+                signature as *const ECCSignatureBlob,
+            )
+        };
+        trace!("[SKF_ExtECCVerify]: ret = {}", ret);
+        if ret != SAR_OK {
+            return Err(Error::Skf(SkfErr::of_code(ret)));
+        }
+        Ok(())
+    }
+}
 impl AppManager for SkfDeviceImpl {
     #[instrument]
     fn enumerate_app_name(&self) -> Result<Vec<String>> {

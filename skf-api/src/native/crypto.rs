@@ -373,7 +373,7 @@ extern "C" {
         key_blob: *const ECCPublicKeyBlob,
         data: *const BYTE,
         data_len: ULONG,
-        signature: *mut ECCSignatureBlob,
+        signature: *const ECCSignatureBlob,
     ) -> ULONG;
 
     /// 使用ECC密钥协商算法，为计算会话密钥而产生协商参数，返回临时ECC密钥对的公钥及协商句柄

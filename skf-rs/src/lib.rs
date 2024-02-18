@@ -3,7 +3,7 @@ mod error;
 pub mod helper;
 pub mod spec;
 
-use skf_api::native::types::HANDLE;
+use skf_api::native::types::{ECCPrivateKeyBlob, ECCPublicKeyBlob, ECCSignatureBlob, HANDLE};
 use std::time::Duration;
 
 pub type Error = error::Error;
@@ -18,47 +18,24 @@ pub struct PluginEvent {
     pub event: u8,
 }
 
-impl PluginEvent {
-    /// The device is plugged in
-    pub const EVENT_PLUGGED_IN: u8 = 1;
+/// 256-bit hash value
+pub type HASH256 = [u8; 32];
 
-    /// The device is unplugged
-    pub const EVENT_UNPLUGGED: u8 = 2;
-
-    pub fn new(device_name: impl Into<String>, event: u8) -> Self {
+/// ECC encrypt output,Wrapper of [DST](https://doc.rust-lang.org/reference/dynamically-sized-types.html) `ECCCipherBlob`
+#[derive(Debug)]
+pub struct ECCEncryptedData {
+    pub ec_x: [u8; 64],
+    pub ec_y: [u8; 64],
+    pub hash: HASH256,
+    pub cipher: Vec<u8>,
+}
+impl Default for ECCEncryptedData {
+    fn default() -> Self {
         Self {
-            device_name: device_name.into(),
-            event,
-        }
-    }
-
-    pub fn plugged_in(device_name: impl AsRef<str>) -> Self {
-        Self {
-            device_name: device_name.as_ref().to_string(),
-            event: Self::EVENT_PLUGGED_IN,
-        }
-    }
-
-    pub fn unplugged(device_name: impl AsRef<str>) -> Self {
-        Self {
-            device_name: device_name.as_ref().to_string(),
-            event: Self::EVENT_UNPLUGGED,
-        }
-    }
-
-    pub fn is_plugged_in(&self) -> bool {
-        self.event == Self::EVENT_PLUGGED_IN
-    }
-
-    pub fn is_unplugged(&self) -> bool {
-        self.event == Self::EVENT_UNPLUGGED
-    }
-
-    pub fn event_description(&self) -> &'static str {
-        match self.event {
-            Self::EVENT_PLUGGED_IN => "plugged in",
-            Self::EVENT_UNPLUGGED => "unplugged",
-            _ => "unknown",
+            ec_x: [0; 64],
+            ec_y: [0; 64],
+            hash: [0; 32],
+            cipher: vec![],
         }
     }
 }
@@ -161,7 +138,9 @@ pub trait DeviceCtl {
     ///
     /// This function is for testing purpose
     fn transmit(&self, command: &[u8], recv_capacity: usize) -> Result<Vec<u8>>;
+}
 
+pub trait DeviceCrypto {
     /// Generate random data
     ///
     /// [len] - The random data length to generate,in bytes
@@ -175,6 +154,20 @@ pub trait DeviceCtl {
     /// ## Owner object lifetime requirement
     /// If owner object([SkfDevice]) is dropped, the key will be invalid
     fn set_symmetric_key(&self, alg_id: u32, key: &[u8]) -> Result<Box<dyn ManagedKey>>;
+
+    fn ext_ecc_encrypt(&self, key: &ECCPublicKeyBlob, data: &[u8]) -> Result<ECCEncryptedData>;
+    fn ext_ecc_decrypt(
+        &self,
+        key: &ECCPrivateKeyBlob,
+        cipher: &ECCEncryptedData,
+    ) -> Result<Vec<u8>>;
+    fn ext_ecc_sign(&self, key: &ECCPrivateKeyBlob, data: &[u8]) -> Result<ECCSignatureBlob>;
+    fn ext_ecc_verify(
+        &self,
+        key: &ECCPublicKeyBlob,
+        data: &[u8],
+        signature: &ECCSignatureBlob,
+    ) -> Result<()>;
 }
 
 #[derive(Debug, Default)]
@@ -231,7 +224,7 @@ pub trait DeviceSecurity {
 /// Represents a device instance,call `DeviceManager::connect()` or `DeviceManager::connect_selected()` to get one
 /// ## Disconnect
 /// Device instance is disconnected when `Drop`
-pub trait SkfDevice: DeviceCtl + DeviceSecurity + AppManager {
+pub trait SkfDevice: DeviceCtl + DeviceSecurity + AppManager + DeviceCrypto {
     /// get block cipher service
     fn block_cipher(&self) -> Result<Box<dyn SkfBlockCipher + Send + Sync>>;
 }
@@ -422,6 +415,8 @@ pub trait SkfContainer {
     /// [signer] - True means The exported certificate is used for sign
     fn export_certificate(&self, signer: bool) -> Result<Vec<u8>>;
 }
+
+pub type Hash256 = [u8; 32];
 
 #[derive(Debug, Default)]
 pub struct BlockCipherParameter {

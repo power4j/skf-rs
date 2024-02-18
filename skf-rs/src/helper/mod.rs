@@ -1,6 +1,11 @@
+use crate::ECCEncryptedData;
+use skf_api::native::types::ULONG;
+
 pub mod auth;
 
 pub mod mem {
+    use crate::ECCEncryptedData;
+    use skf_api::native::types::ECCPrivateKeyBlob;
     use std::cmp::min;
     use std::ffi::CStr;
     use std::slice;
@@ -199,9 +204,26 @@ pub mod mem {
         write_cstr(src, bytes);
     }
 
+    impl ECCEncryptedData {
+        /// Convert to bytes of `ECCCipherBlob`
+        pub fn cipher_blob_bytes(&self) -> Vec<u8> {
+            use skf_api::native::types::ULONG;
+
+            let len = 64 + 64 + 32 + 4 + self.cipher.len();
+            let mut vec: Vec<u8> = Vec::with_capacity(len);
+            let cipher_len: [u8; 4] = (self.cipher.len() as ULONG).to_ne_bytes();
+            vec.extend_from_slice(&self.ec_x);
+            vec.extend_from_slice(&self.ec_y);
+            vec.extend_from_slice(&self.hash);
+            vec.extend_from_slice(&cipher_len);
+            vec.extend_from_slice(&self.cipher);
+            vec
+        }
+    }
     #[cfg(test)]
     mod tests {
         use super::*;
+        use crate::ECCEncryptedData;
 
         #[test]
         fn parse_terminated_cstr_list_test() {
@@ -240,6 +262,32 @@ pub mod mem {
                 write_cstr(input, &mut buffer);
             }
             assert_eq!(b"\0", &buffer);
+        }
+
+        #[test]
+        fn cipher_blob_data_test() {
+            use skf_api::native::types::ECCCipherBlob;
+            let data = ECCEncryptedData {
+                ec_x: [1u8; 64],
+                ec_y: [2u8; 64],
+                hash: [3u8; 32],
+                cipher: vec![1u8, 2u8, 3u8, 4u8, 5u8],
+            };
+            let mem = data.cipher_blob_bytes();
+            assert_eq!(mem.len(), 64 + 64 + 32 + 4 + 5);
+            unsafe {
+                let blob_ptr = mem.as_ptr() as *const ECCCipherBlob;
+                let blob = &*blob_ptr;
+
+                assert_eq!(blob.x_coordinate, [1u8; 64]);
+                assert_eq!(blob.y_coordinate, [2u8; 64]);
+                assert_eq!(blob.hash, [3u8; 32]);
+                assert_eq!(
+                    unsafe { std::ptr::addr_of!(blob.cipher_len).read_unaligned() },
+                    5
+                );
+                assert_eq!(blob.cipher, [1u8]);
+            }
         }
     }
 }
