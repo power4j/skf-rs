@@ -5,9 +5,9 @@ use crate::engine::symbol::ModDev;
 use crate::error::SkfErr;
 use crate::helper::{mem, param};
 use crate::{
-    AppAttr, AppManager, DeviceCrypto, DeviceCtl, DeviceInformation, DeviceSecurity,
-    ECCEncryptedData, ECCPrivateKeyBlob, ECCPublicKeyBlob, ECCSignatureBlob, ManagedKey, SkfApp,
-    SkfBlockCipher, SkfDevice, Version,
+    AppAttr, AppManager, DeviceAuth, DeviceCrypto, DeviceCtl, DeviceInformation, ECCEncryptedData,
+    ECCPrivateKeyBlob, ECCPublicKeyBlob, ECCSignatureBlob, ManagedKey, SkfApp, SkfBlockCipher,
+    SkfDevice, Version,
 };
 use crate::{Error, Result};
 use skf_api::native::error::SAR_OK;
@@ -61,7 +61,7 @@ impl Debug for SkfDeviceImpl {
     }
 }
 
-impl DeviceSecurity for SkfDeviceImpl {
+impl DeviceAuth for SkfDeviceImpl {
     #[instrument]
     fn device_auth(&self, data: &[u8]) -> Result<()> {
         let func = self.symbols.dev_auth.as_ref().expect("Symbol not load");

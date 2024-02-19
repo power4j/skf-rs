@@ -155,13 +155,38 @@ pub trait DeviceCrypto {
     /// If owner object([SkfDevice]) is dropped, the key will be invalid
     fn set_symmetric_key(&self, alg_id: u32, key: &[u8]) -> Result<Box<dyn ManagedKey>>;
 
+    /// Encrypt data,using external ecc public key
+    ///
+    /// [key] - The public key
+    ///
+    /// [data] - The data to encrypt
     fn ext_ecc_encrypt(&self, key: &ECCPublicKeyBlob, data: &[u8]) -> Result<ECCEncryptedData>;
+
+    /// Decrypt data,using external ecc private key
+    ///
+    /// [key] - The private key
+    ///
+    /// [cipher] - The encrypted data,returned by `ext_ecc_encrypt`
     fn ext_ecc_decrypt(
         &self,
         key: &ECCPrivateKeyBlob,
         cipher: &ECCEncryptedData,
     ) -> Result<Vec<u8>>;
+
+    /// Sign data,using external ecc private key
+    ///
+    /// [key] - The private key
+    ///
+    /// [data] - The data to sign
     fn ext_ecc_sign(&self, key: &ECCPrivateKeyBlob, data: &[u8]) -> Result<ECCSignatureBlob>;
+
+    /// Verify signature,using external ecc public key
+    ///
+    /// [key] - The public key
+    ///
+    /// [data] - The data to verify
+    ///
+    /// [signature] - The signature,returned by `ext_ecc_sign`
     fn ext_ecc_verify(
         &self,
         key: &ECCPublicKeyBlob,
@@ -203,7 +228,7 @@ pub trait AppManager {
     /// [name] - The app name to delete
     fn delete_app(&self, name: &str) -> Result<()>;
 }
-pub trait DeviceSecurity {
+pub trait DeviceAuth {
     /// Device authentication
     ///
     /// [data] - The authentication data
@@ -224,7 +249,7 @@ pub trait DeviceSecurity {
 /// Represents a device instance,call `DeviceManager::connect()` or `DeviceManager::connect_selected()` to get one
 /// ## Disconnect
 /// Device instance is disconnected when `Drop`
-pub trait SkfDevice: DeviceCtl + DeviceSecurity + AppManager + DeviceCrypto {
+pub trait SkfDevice: DeviceCtl + DeviceAuth + AppManager + DeviceCrypto {
     /// get block cipher service
     fn block_cipher(&self) -> Result<Box<dyn SkfBlockCipher + Send + Sync>>;
 }
@@ -418,6 +443,7 @@ pub trait SkfContainer {
 
 pub type Hash256 = [u8; 32];
 
+/// Block cipher parameter,wrapper of `BlockCipherParam`
 #[derive(Debug, Default)]
 pub struct BlockCipherParameter {
     /// IV data,max 32 bytes,Empty means no IV
