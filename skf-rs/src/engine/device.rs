@@ -344,11 +344,7 @@ impl DeviceCrypto for SkfDeviceImpl {
         hash: &[u8],
         signature: &ECCSignatureBlob,
     ) -> Result<()> {
-        let func = self
-            .symbols
-            .ecc_ext_verify
-            .as_ref()
-            .expect("Symbol not load");
+        let func = self.symbols.ecc_verify.as_ref().expect("Symbol not load");
 
         let ret = unsafe {
             func(

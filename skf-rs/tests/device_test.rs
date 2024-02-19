@@ -3,6 +3,7 @@ use std::time::{Duration, SystemTime};
 mod common;
 use crate::common::{ext_ecc_key_pair, use_first_device_with_auth, TEST_ADMIN_PIN, TEST_USER_PIN};
 use common::use_first_device;
+use skf_api::native::types::ECCSignatureBlob;
 
 use skf_rs::helper::describe_result;
 
@@ -158,4 +159,30 @@ fn ext_ecc_sign_test() {
     let ret = dev.ext_ecc_verify(&public_key_blob, plain, &sign);
     println!("result of ext_ecc_verify : {:?}", &ret);
     assert!(ret.is_ok());
+}
+
+#[test]
+#[ignore]
+fn invoke_ecc_verify() {
+    // pre-processed hash
+    let hash: [u8; 32] = [
+        230, 169, 165, 142, 252, 155, 75, 123, 90, 55, 21, 21, 199, 115, 160, 145, 7, 144, 24, 121,
+        81, 131, 170, 91, 103, 104, 107, 132, 242, 188, 185, 164,
+    ];
+    let r: [u8; 64] = [
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 194, 177, 208, 83, 35, 238, 111, 27, 172, 87, 189, 226, 164, 84, 72, 131, 93, 166,
+        39, 192, 55, 165, 54, 205, 190, 89, 100, 208, 106, 76, 203, 243,
+    ];
+    let s: [u8; 64] = [
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 216, 104, 162, 234, 63, 236, 72, 26, 38, 6, 43, 80, 163, 104, 146, 175, 120, 57, 171,
+        156, 6, 57, 201, 6, 250, 40, 231, 56, 204, 243, 49, 234,
+    ];
+    let sign = ECCSignatureBlob { r, s };
+    let (_private_key_blob, public_key_blob) = ext_ecc_key_pair();
+    let dev = use_first_device();
+
+    let ret = dev.ecc_verify(&public_key_blob, &hash, &sign);
+    println!("result of ecc_verify : {:?}", &ret);
 }
