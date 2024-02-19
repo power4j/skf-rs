@@ -193,6 +193,22 @@ pub trait DeviceCrypto {
         data: &[u8],
         signature: &ECCSignatureBlob,
     ) -> Result<()>;
+
+    /// Verify signature
+    ///
+    /// [key] - The public key
+    ///
+    /// [hash] - The hash value of data.
+    /// When using the SM2 algorithm, the data is the result of pre-processing the data to be
+    /// signed through the SM2 signature pre-processing. The pre-processing procedure follows `GM/T 0009`.
+    ///
+    /// [signature] - The signature,returned by `ext_ecc_sign`
+    fn ecc_verify(
+        &self,
+        key: &ECCPublicKeyBlob,
+        hash: &[u8],
+        signature: &ECCSignatureBlob,
+    ) -> Result<()>;
 }
 
 #[derive(Debug, Default)]

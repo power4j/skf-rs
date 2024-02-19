@@ -356,6 +356,7 @@ pub(crate) struct ModDev {
     pub ecc_ext_decrypt: Option<crypto_fn::SKF_ExtECCDecrypt>,
     pub ecc_ext_sign: Option<crypto_fn::SKF_ExtECCSign>,
     pub ecc_ext_verify: Option<crypto_fn::SKF_ExtECCVerify>,
+    pub ecc_verify: Option<crypto_fn::SKF_ECCVerify>,
 }
 
 impl ModDev {
@@ -379,6 +380,7 @@ impl ModDev {
         let ecc_ext_decrypt = Some(unsafe { SymbolBundle::new(lib, b"SKF_ExtECCDecrypt\0")? });
         let ecc_ext_sign = Some(unsafe { SymbolBundle::new(lib, b"SKF_ExtECCSign\0")? });
         let ecc_ext_verify = Some(unsafe { SymbolBundle::new(lib, b"SKF_ExtECCVerify\0")? });
+        let ecc_verify = Some(unsafe { SymbolBundle::new(lib, b"SKF_ECCVerify\0")? });
 
         let holder = Self {
             dev_set_label,
@@ -399,6 +401,7 @@ impl ModDev {
             ecc_ext_decrypt,
             ecc_ext_sign,
             ecc_ext_verify,
+            ecc_verify,
         };
         Ok(holder)
     }
