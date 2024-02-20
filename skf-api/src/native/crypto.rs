@@ -214,50 +214,6 @@ extern "C" {
         decrypted_data_len: *mut ULONG,
     ) -> ULONG;
 
-    /// 生成ECC签名密钥对
-    ///
-    /// [ct_handle] `[IN]`容器句柄
-    ///
-    /// [alg_id] `[IN]`算法标识，只支持`SGD_SM2_1`算法。
-    ///
-    /// [key_blob] `[OUT]`返回ECC公钥数据结构
-    ///
-    /// ## 权限要求
-    /// 需要用户权限
-    pub fn SKF_GenECCKeyPair(
-        ct_handle: HANDLE,
-        alg_id: ULONG,
-        key_blob: *mut ECCPublicKeyBlob,
-    ) -> ULONG;
-
-    /// 导入ECC公私钥对
-    ///
-    /// [ct_handle] `[IN]`容器句柄
-    ///
-    /// [key_blob] `[IN]`ECC公私钥数据结构
-    ///
-    /// ## 权限要求
-    /// 需要用户权限
-    pub fn SKF_ImportECCKeyPair(ct_handle: HANDLE, key_blob: *const EnvelopedKeyBlob) -> ULONG;
-
-    /// ECC数字签名，采用 ECC 算法和指定私钥对指定数据进行数字签名，签名后的结果存放到signature中。
-    ///
-    /// [ct_handle] `[IN]`容器句柄
-    ///
-    /// [data] `[IN]`待签名的数据,当使用 SM2算法时，该输入数据为待签数据经过`SM2`签名预处理的结果，预处理过程遵循`GM/T 0009`。
-    ///
-    /// [data_len] `[IN]`待签名数据长度，必须小于密钥模长。
-    ///
-    /// [signature] `[OUT]`签名值
-    /// ## 权限要求
-    /// 需要用户权限
-    pub fn SKF_ECCSignData(
-        ct_handle: HANDLE,
-        data: *const BYTE,
-        data_len: ULONG,
-        signature: *mut ECCSignatureBlob,
-    ) -> ULONG;
-
     /// 用ECC公钥对数据进行验签
     ///
     /// [device_handle] `[IN]`设备句柄
@@ -376,6 +332,66 @@ extern "C" {
         signature: *const ECCSignatureBlob,
     ) -> ULONG;
 
+    /// 生成ECC签名密钥对
+    ///
+    /// [ct_handle] `[IN]`容器句柄
+    ///
+    /// [alg_id] `[IN]`算法标识，只支持`SGD_SM2_1`算法。
+    ///
+    /// [key_blob] `[OUT]`返回ECC公钥数据结构
+    ///
+    /// ## 权限要求
+    /// 需要用户权限
+    pub fn SKF_GenECCKeyPair(
+        ct_handle: HANDLE,
+        alg_id: ULONG,
+        key_blob: *mut ECCPublicKeyBlob,
+    ) -> ULONG;
+
+    /// 导入ECC公私钥对
+    ///
+    /// [ct_handle] `[IN]`容器句柄
+    ///
+    /// [key_blob] `[IN]`ECC公私钥数据结构
+    ///
+    /// ## 权限要求
+    /// 需要用户权限
+    pub fn SKF_ImportECCKeyPair(ct_handle: HANDLE, key_blob: *const EnvelopedKeyBlob) -> ULONG;
+
+    /// 导出容器中的签名公钥或者加密公钥
+    ///
+    /// [ct_handle] `[IN]`容器句柄
+    ///
+    /// [sign_flag] `[IN]`TRUE表示导出签名公钥，FALSE表示导出加密公钥
+    ///
+    /// [data] `[OUT]`指向导出公钥结构的缓冲区,指向 RSA 公钥结构(`RSAPublicKeyBlob`)或者 ECC公钥结构(`ECCPublicKeyBlob`)，如果此参数为`NULL`时，由data_len返回长度。
+    ///
+    /// [data_len] `[IN,OUT]`输入时表示导出公钥缓冲区的长度，输出时表示导出公钥结构的大小
+    pub fn SKF_ExportPublicKey(
+        ct_handle: HANDLE,
+        sign_flag: BOOL,
+        data: *mut BYTE,
+        data_len: *mut ULONG,
+    ) -> ULONG;
+
+    /// ECC数字签名，采用 ECC 算法和指定私钥对指定数据进行数字签名，签名后的结果存放到signature中。
+    ///
+    /// [ct_handle] `[IN]`容器句柄
+    ///
+    /// [data] `[IN]`待签名的数据,当使用 SM2算法时，该输入数据为待签数据经过`SM2`签名预处理的结果，预处理过程遵循`GM/T 0009`。
+    ///
+    /// [data_len] `[IN]`待签名数据长度，必须小于密钥模长。
+    ///
+    /// [signature] `[OUT]`签名值
+    /// ## 权限要求
+    /// 需要用户权限
+    pub fn SKF_ECCSignData(
+        ct_handle: HANDLE,
+        data: *const BYTE,
+        data_len: ULONG,
+        signature: *mut ECCSignatureBlob,
+    ) -> ULONG;
+
     /// 使用ECC密钥协商算法，为计算会话密钥而产生协商参数，返回临时ECC密钥对的公钥及协商句柄
     ///
     /// [ct_handle] `[IN]`容器句柄
@@ -430,6 +446,27 @@ extern "C" {
         key_handle: *mut HANDLE,
     ) -> ULONG;
 
+    /// 导入会话密钥
+    ///
+    /// [ct_handle] `[IN]`容器句柄
+    ///
+    /// [alg_id] `[IN]`会话密钥的算法标识
+    ///
+    /// [data] `[IN]`要导入的会话密钥密文。当容器为 ECC 类型时，此参数为ECCCipherBlob密文数据，当容器为RSA类型时，此参数为RSA公钥加密后的数据
+    ///
+    /// [data_len] `[IN]`会话密钥密文长度
+    ///
+    /// [key_handle] `[OUT]`返回会话密钥句柄
+    /// ## 权限要求
+    /// 需要用户权限
+    pub fn SKF_ImportSessionKey(
+        ct_handle: HANDLE,
+        alg_id: ULONG,
+        data: *const BYTE,
+        data_len: ULONG,
+        key_handle: *mut HANDLE,
+    ) -> ULONG;
+
     /// 使用ECC密钥协商算法，使用自身协商句柄和响应方的协商参数计算会话密钥，同时返回会话密钥句柄
     ///
     /// [agreement_key] `[IN]`密钥协商句柄
@@ -449,43 +486,6 @@ extern "C" {
         tmp_key_blob: *const ECCPublicKeyBlob,
         id: *const BYTE,
         id_len: ULONG,
-        key_handle: *mut HANDLE,
-    ) -> ULONG;
-
-    /// 导出容器中的签名公钥或者加密公钥
-    ///
-    /// [ct_handle] `[IN]`容器句柄
-    ///
-    /// [sign_flag] `[IN]`TRUE表示导出签名公钥，FALSE表示导出加密公钥
-    ///
-    /// [data] `[OUT]`指向导出公钥结构的缓冲区,指向 RSA 公钥结构(`RSAPublicKeyBlob`)或者 ECC公钥结构(`ECCPublicKeyBlob`)，如果此参数为`NULL`时，由data_len返回长度。
-    ///
-    /// [data_len] `[IN,OUT]`输入时表示导出公钥缓冲区的长度，输出时表示导出公钥结构的大小
-    pub fn SKF_ExportPublicKey(
-        ct_handle: HANDLE,
-        sign_flag: BOOL,
-        data: *mut BYTE,
-        data_len: *mut ULONG,
-    ) -> ULONG;
-
-    /// 导入会话密钥
-    ///
-    /// [ct_handle] `[IN]`容器句柄
-    ///
-    /// [alg_id] `[IN]`会话密钥的算法标识
-    ///
-    /// [data] `[IN]`要导入的会话密钥密文。当容器为 ECC 类型时，此参数为ECCCipherBlob密文数据，当容器为RSA类型时，此参数为RSA公钥加密后的数据
-    ///
-    /// [data_len] `[IN]`会话密钥密文长度
-    ///
-    /// [key_handle] `[OUT]`返回会话密钥句柄
-    /// ## 权限要求
-    /// 需要用户权限
-    pub fn SKF_ImportSessionKey(
-        ct_handle: HANDLE,
-        alg_id: ULONG,
-        data: *const BYTE,
-        data_len: ULONG,
         key_handle: *mut HANDLE,
     ) -> ULONG;
 }

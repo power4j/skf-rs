@@ -3,7 +3,7 @@ mod error;
 pub mod helper;
 pub mod spec;
 
-use skf_api::native::types::{ECCPrivateKeyBlob, ECCPublicKeyBlob, ECCSignatureBlob, HANDLE};
+use skf_api::native::types::{ECCPrivateKeyBlob, ECCPublicKeyBlob, ECCSignatureBlob, BYTE, HANDLE};
 use std::time::Duration;
 
 pub type Error = error::Error;
@@ -39,6 +39,31 @@ impl Default for ECCEncryptedData {
         }
     }
 }
+
+/// ECC Enveloped key,Wrapper of [DST](https://doc.rust-lang.org/reference/dynamically-sized-types.html) `EnvelopedKeyBlob`
+#[derive(Debug)]
+pub struct EnvelopedKeyData {
+    pub version: u32,
+    pub sym_alg_id: u32,
+    pub bits: u32,
+    pub encrypted_pri_key: [u8; 64],
+    pub pub_key: ECCPublicKeyBlob,
+    pub ecc_cipher: ECCEncryptedData,
+}
+
+impl Default for EnvelopedKeyData {
+    fn default() -> Self {
+        Self {
+            version: 0,
+            sym_alg_id: 0,
+            bits: 0,
+            encrypted_pri_key: [0u8; 64],
+            pub_key: ECCPublicKeyBlob::default(),
+            ecc_cipher: ECCEncryptedData::default(),
+        }
+    }
+}
+
 #[derive(Debug, Default)]
 pub struct Version {
     pub major: u8,
@@ -455,6 +480,67 @@ pub trait SkfContainer {
     ///
     /// [signer] - True means The exported certificate is used for sign
     fn export_certificate(&self, signer: bool) -> Result<Vec<u8>>;
+
+    /// Generate ECC key pair,the private key will be stored in the container.
+    ///
+    /// see [SKF_GenECCKeyPair] for more details
+    ///
+    /// [alg_id] - The algorithm id, supported values is `SGD_SM2_1`
+    fn ecc_gen_key_pair(&self, alg_id: u32) -> Result<ECCPublicKeyBlob>;
+
+    /// Import ECC key pair to container.
+    ///
+    /// see [SKF_ImportECCKeyPair] for more details
+    /// ## permission state requirement
+    /// user permission
+    fn ecc_import_key_pair(&self, enveloped_key: &EnvelopedKeyData) -> Result<()>;
+
+    /// Export ECC public key from container.
+    ///
+    /// see [SKF_ExportPublicKey] for more details
+    /// [sign_part] - True means The exported public key is used for sign
+    fn ecc_export_public_key(&self, sign_part: bool) -> Result<Vec<u8>>;
+
+    /// Sign data use signing key in the container
+    ///
+    /// see [SKF_ECCSignData] for more details
+    ///
+    /// [data] - The data to sign
+    /// ## permission state requirement
+    /// user permission
+    fn ecc_sign(&self, data: &[u8]) -> Result<ECCSignatureBlob>;
+
+    /// Key exchange step: generate agreement data
+    ///
+    /// see [SKF_GenerateAgreementDataWithECC] for more details
+    ///
+    /// [alg_id] - The algorithm id used for session key generation
+    ///
+    /// [pub_key] - Initiator's ephemeral public key
+    ///
+    /// [id] - Initiator's ID,max 32 bytes
+    fn sk_gen_agreement_data(
+        &self,
+        alg_id: u32,
+        pub_key: &ECCPublicKeyBlob,
+        id: &[u8],
+    ) -> Result<Box<dyn ManagedKey>>;
+
+    /// Key exchange step: generate session key
+    ///
+    /// see [SKF_GenerateAgreementDataAndKeyWithECC] for more details
+    fn sk_gen_agreement_data_and_key(&self, alg_id: u32) -> Result<Vec<u8>>;
+
+    /// Import session key
+    ///
+    /// see [SKF_ImportSessionKey] for more details
+    fn sk_import(&self, alg_id: u32, key: &[u8]) -> Result<()>;
+
+    /// Key exchange step: generate session key
+    ///
+    /// see [SKF_GenerateKeyWithECC] for more details
+    /// todo : move to utils
+    fn sk_gen_key(&self, alg_id: u32) -> Result<Vec<u8>>;
 }
 
 pub type Hash256 = [u8; 32];
