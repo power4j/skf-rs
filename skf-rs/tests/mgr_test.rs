@@ -3,8 +3,8 @@ use std::sync::Arc;
 use std::thread;
 
 mod common;
+use crate::common::describe_result;
 use common::chose_first;
-use skf_rs::helper::describe_result;
 
 #[test]
 #[ignore]

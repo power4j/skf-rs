@@ -50,7 +50,11 @@ impl ECCPublicKeyBlob {
         &self.y_coordinate[self.bit_len as usize / 8..]
     }
 }
-
+impl Default for ECCPublicKeyBlob {
+    fn default() -> Self {
+        Self::new_256(&[0u8; 32], &[0u8; 32])
+    }
+}
 impl ECCPrivateKeyBlob {
     /// crate `ECCPrivateKeyBlob` with 256 key
     /// ## Panics
@@ -65,6 +69,11 @@ impl ECCPrivateKeyBlob {
             bit_len: 256,
             private_key: k.try_into().unwrap(),
         }
+    }
+}
+impl Default for ECCPrivateKeyBlob {
+    fn default() -> Self {
+        Self::new_256(&[0u8; 32])
     }
 }
 impl ECCCipherBlob {

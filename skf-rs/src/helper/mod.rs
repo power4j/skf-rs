@@ -1,8 +1,10 @@
 pub mod auth;
+pub mod easy;
 
 pub mod mem {
-    use crate::ECCEncryptedData;
+    use crate::{ECCEncryptedData, EnvelopedKeyData};
 
+    use skf_api::native::types::ECCPublicKeyBlob;
     use std::cmp::min;
     use std::ffi::CStr;
     use std::slice;
@@ -203,7 +205,7 @@ pub mod mem {
 
     impl ECCEncryptedData {
         /// Convert to bytes of `ECCCipherBlob`
-        pub fn cipher_blob_bytes(&self) -> Vec<u8> {
+        pub fn blob_bytes(&self) -> Vec<u8> {
             use skf_api::native::types::ULONG;
 
             let len = 64 + 64 + 32 + 4 + self.cipher.len();
@@ -214,6 +216,43 @@ pub mod mem {
             vec.extend_from_slice(&self.hash);
             vec.extend_from_slice(&cipher_len);
             vec.extend_from_slice(&self.cipher);
+            vec
+        }
+    }
+
+    impl EnvelopedKeyData {
+        /// Convert to bytes of `EnvelopedKeyBlob`
+        pub fn blob_bytes(&self) -> Vec<u8> {
+            use skf_api::native::types::ULONG;
+
+            let cipher_blob = self.ecc_cipher.blob_bytes();
+            let len = 4 + 4 + 4 + 64 + std::mem::size_of::<ECCPublicKeyBlob>() + cipher_blob.len();
+            let mut vec: Vec<u8> = Vec::with_capacity(len);
+
+            // version
+            let bytes: [u8; 4] = (self.version as ULONG).to_ne_bytes();
+            vec.extend_from_slice(&bytes);
+            // sym_alg_id
+            let bytes: [u8; 4] = (self.sym_alg_id as ULONG).to_ne_bytes();
+            vec.extend_from_slice(&bytes);
+            // bits
+            let bytes: [u8; 4] = (self.bits as ULONG).to_ne_bytes();
+            vec.extend_from_slice(&bytes);
+            // encrypted_pri_key
+            vec.extend_from_slice(&self.encrypted_pri_key);
+
+            // pub_key.bit_len
+            let bytes: [u8; 4] = (self.pub_key.bit_len as ULONG).to_ne_bytes();
+            vec.extend_from_slice(&bytes);
+
+            // pub_key.x_coordinate
+            vec.extend_from_slice(&self.pub_key.x_coordinate);
+
+            // pub_key.y_coordinate
+            vec.extend_from_slice(&self.pub_key.y_coordinate);
+
+            // cipher
+            vec.extend_from_slice(&cipher_blob);
             vec
         }
     }
@@ -270,7 +309,7 @@ pub mod mem {
                 hash: [3u8; 32],
                 cipher: vec![1u8, 2u8, 3u8, 4u8, 5u8],
             };
-            let mem = data.cipher_blob_bytes();
+            let mem = data.blob_bytes();
             assert_eq!(mem.len(), 64 + 64 + 32 + 4 + 5);
             unsafe {
                 let blob_ptr = mem.as_ptr() as *const ECCCipherBlob;
@@ -306,11 +345,5 @@ pub mod param {
             )
         })?;
         Ok(value)
-    }
-}
-pub fn describe_result<T>(result: &crate::Result<T>) -> String {
-    match result.as_ref() {
-        Ok(_) => "OK".to_string(),
-        Err(e) => format!("{:?}", e),
     }
 }

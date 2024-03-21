@@ -262,7 +262,7 @@ impl DeviceCrypto for SkfDeviceImpl {
             .ecc_ext_decrypt
             .as_ref()
             .expect("Symbol not load");
-        let cipher_mem = cipher.cipher_blob_bytes();
+        let cipher_mem = cipher.blob_bytes();
         let mut buff: Vec<u8> = Vec::with_capacity(cipher.cipher.len());
         let mut buff_len: ULONG = buff.len() as ULONG;
 
@@ -360,6 +360,35 @@ impl DeviceCrypto for SkfDeviceImpl {
             return Err(Error::Skf(SkfErr::of_code(ret)));
         }
         Ok(())
+    }
+
+    #[instrument(skip(agreement_key))]
+    fn ecc_gen_session_key(
+        &self,
+        agreement_key: &dyn ManagedKey,
+        responder_key: &ECCPublicKeyBlob,
+        responder_tmp_key: &ECCPublicKeyBlob,
+        responder_id: &[u8],
+    ) -> Result<Box<dyn ManagedKey>> {
+        let func = self.symbols.ecc_gen_sk.as_ref().expect("Symbol not load");
+
+        let mut handle: HANDLE = std::ptr::null_mut();
+        let ret = unsafe {
+            func(
+                *agreement_key.as_ref(),
+                responder_key,
+                responder_tmp_key,
+                responder_id.as_ptr() as *const BYTE,
+                responder_id.len() as ULONG,
+                &mut handle,
+            )
+        };
+        trace!("[SKF_GenerateKeyWithECC]: ret = {}", ret);
+        if ret != SAR_OK {
+            return Err(Error::Skf(SkfErr::of_code(ret)));
+        }
+        let managed_key = ManagedKeyImpl::try_new(handle, &self.lib)?;
+        Ok(Box::new(managed_key))
     }
 }
 impl AppManager for SkfDeviceImpl {

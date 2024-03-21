@@ -1,6 +1,5 @@
 mod common;
-use crate::common::{use_block_cipher, use_first_device};
-use skf_rs::helper::describe_result;
+use crate::common::{describe_result, use_block_cipher, use_first_device};
 use skf_rs::spec::algorithm;
 use skf_rs::BlockCipherParameter;
 

@@ -1,11 +1,11 @@
 use skf_rs::{AppAttr, FILE_PERM_EVERYONE};
 use std::time::{Duration, SystemTime};
 mod common;
-use crate::common::{ext_ecc_key_pair, use_first_device_with_auth, TEST_ADMIN_PIN, TEST_USER_PIN};
+use crate::common::{
+    describe_result, ext_ecc_key_pair, use_first_device_with_auth, TEST_ADMIN_PIN, TEST_USER_PIN,
+};
 use common::use_first_device;
 use skf_api::native::types::ECCSignatureBlob;
-
-use skf_rs::helper::describe_result;
 
 #[test]
 #[ignore]

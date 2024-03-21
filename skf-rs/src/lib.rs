@@ -3,7 +3,10 @@ mod error;
 pub mod helper;
 pub mod spec;
 
-use skf_api::native::types::{ECCPrivateKeyBlob, ECCPublicKeyBlob, ECCSignatureBlob, BYTE, HANDLE};
+use skf_api::native::types::{
+    ECCPrivateKeyBlob, ECCPublicKeyBlob, ECCSignatureBlob, BYTE, HANDLE, ULONG,
+};
+use std::fmt::{Debug, Formatter};
 use std::time::Duration;
 
 pub type Error = error::Error;
@@ -128,10 +131,13 @@ pub trait DeviceManager {
     /// Connect to device by enumerate all devices and select one,if no device matches the selector, None will be returned
     ///
     /// [selector] - The device selector,if device list is not empty, the selector will be invoked to select one
+    ///
+    /// ## error
+    /// - `Error::NotFound` returned means there is no device to connect,or the selector returns None
     fn connect_selected(
         &self,
         selector: fn(Vec<&str>) -> Option<&str>,
-    ) -> Result<Option<Box<dyn SkfDevice>>>;
+    ) -> Result<Box<dyn SkfDevice>>;
 }
 
 pub trait DeviceCtl {
@@ -234,6 +240,21 @@ pub trait DeviceCrypto {
         hash: &[u8],
         signature: &ECCSignatureBlob,
     ) -> Result<()>;
+
+    /// Key exchange step: generate session key for initiator
+    ///
+    /// see [SKF_GenerateKeyWithECC] for more details
+    ///
+    /// [agreement_key] - The agreement key,returned by `SkfContainer::sk_gen_agreement_data`
+    ///
+    /// [
+    fn ecc_gen_session_key(
+        &self,
+        agreement_key: &dyn ManagedKey,
+        responder_key: &ECCPublicKeyBlob,
+        responder_tmp_key: &ECCPublicKeyBlob,
+        responder_id: &[u8],
+    ) -> Result<Box<dyn ManagedKey>>;
 }
 
 #[derive(Debug, Default)]
@@ -481,16 +502,19 @@ pub trait SkfContainer {
     /// [signer] - True means The exported certificate is used for sign
     fn export_certificate(&self, signer: bool) -> Result<Vec<u8>>;
 
-    /// Generate ECC key pair,the private key will be stored in the container.
+    /// Generate ECC key pair(signing part),the private key will be stored in the container.
     ///
     /// see [SKF_GenECCKeyPair] for more details
     ///
     /// [alg_id] - The algorithm id, supported values is `SGD_SM2_1`
     fn ecc_gen_key_pair(&self, alg_id: u32) -> Result<ECCPublicKeyBlob>;
 
-    /// Import ECC key pair to container.
+    /// Import ECC key pair( encryption part) to container.
     ///
     /// see [SKF_ImportECCKeyPair] for more details
+    ///
+    /// [enveloped_key] - The enveloped key data
+    ///
     /// ## permission state requirement
     /// user permission
     fn ecc_import_key_pair(&self, enveloped_key: &EnvelopedKeyData) -> Result<()>;
@@ -498,6 +522,7 @@ pub trait SkfContainer {
     /// Export ECC public key from container.
     ///
     /// see [SKF_ExportPublicKey] for more details
+    ///
     /// [sign_part] - True means The exported public key is used for sign
     fn ecc_export_public_key(&self, sign_part: bool) -> Result<Vec<u8>>;
 
@@ -505,42 +530,60 @@ pub trait SkfContainer {
     ///
     /// see [SKF_ECCSignData] for more details
     ///
-    /// [data] - The data to sign
-    /// ## permission state requirement
-    /// user permission
-    fn ecc_sign(&self, data: &[u8]) -> Result<ECCSignatureBlob>;
+    /// [hash] - The hash value of data.
+    /// When using the SM2 algorithm, the data is the result of pre-processing the data to be
+    /// signed through the SM2 signature pre-processing. The pre-processing procedure follows `GM/T 0009`.
+    fn ecc_sign(&self, hash: &[u8]) -> Result<ECCSignatureBlob>;
 
-    /// Key exchange step: generate agreement data
+    /// Key exchange step: generate ephemeral public key and  agreement key for initiator
     ///
     /// see [SKF_GenerateAgreementDataWithECC] for more details
     ///
     /// [alg_id] - The algorithm id used for session key generation
     ///
-    /// [pub_key] - Initiator's ephemeral public key
-    ///
     /// [id] - Initiator's ID,max 32 bytes
+    ///
+    /// ## Return value
+    /// return ephemeral public key and key agreement handle
     fn sk_gen_agreement_data(
         &self,
         alg_id: u32,
-        pub_key: &ECCPublicKeyBlob,
         id: &[u8],
-    ) -> Result<Box<dyn ManagedKey>>;
+    ) -> Result<(ECCPublicKeyBlob, Box<dyn ManagedKey>)>;
 
-    /// Key exchange step: generate session key
+    /// Key exchange step: generate ephemeral public key and session key for responder
     ///
     /// see [SKF_GenerateAgreementDataAndKeyWithECC] for more details
-    fn sk_gen_agreement_data_and_key(&self, alg_id: u32) -> Result<Vec<u8>>;
+    ///
+    /// [alg_id] - The algorithm id used for session key generation
+    ///
+    /// [initiator_key] - Initiator's public key
+    ///
+    /// [initiator_tmp_key] - Initiator's ephemeral public key
+    ///
+    /// [initiator_id] - Initiator's ID,max 32 bytes
+    ///
+    /// [responder_id] - Responder's ID,max 32 bytes
+    ///
+    /// ## Return value
+    /// return ephemeral public key and session key handle
+    fn sk_gen_agreement_data_and_key(
+        &self,
+        alg_id: u32,
+        initiator_key: &ECCPublicKeyBlob,
+        initiator_tmp_key: &ECCPublicKeyBlob,
+        initiator_id: &[u8],
+        responder_id: &[u8],
+    ) -> Result<(ECCPublicKeyBlob, Box<dyn ManagedKey>)>;
 
     /// Import session key
     ///
     /// see [SKF_ImportSessionKey] for more details
-    fn sk_import(&self, alg_id: u32, key: &[u8]) -> Result<()>;
-
-    /// Key exchange step: generate session key
     ///
-    /// see [SKF_GenerateKeyWithECC] for more details
-    /// todo : move to utils
-    fn sk_gen_key(&self, alg_id: u32) -> Result<Vec<u8>>;
+    /// [alg_id] - The algorithm id
+    ///
+    /// [key_data] - The session key data
+    fn sk_import(&self, alg_id: u32, key_data: &[u8]) -> Result<Box<dyn ManagedKey>>;
 }
 
 pub type Hash256 = [u8; 32];

@@ -214,44 +214,6 @@ extern "C" {
         decrypted_data_len: *mut ULONG,
     ) -> ULONG;
 
-    /// 用ECC公钥对数据进行验签
-    ///
-    /// [device_handle] `[IN]`设备句柄
-    ///
-    /// [key_blob] `[IN]`ECC公钥数据结构
-    ///
-    /// [data] `[IN]`待签数据的杂凑值。当使用 SM2算法时，该输入数据为待签数据经过`SM2`签名预处理的结果，预处理过程遵循`GM/T 0009`
-    ///
-    /// [data_len] `[IN]`数据长度
-    ///
-    /// [signature] `[IN]`待验证的签名值
-    pub fn SKF_ECCVerify(
-        device_handle: HANDLE,
-        key_blob: *const ECCPublicKeyBlob,
-        data: *const BYTE,
-        data_len: ULONG,
-        signature: *const ECCSignatureBlob,
-    ) -> ULONG;
-
-    /// 生成会话密钥并用外部公钥加密输出
-    ///
-    /// [ct_handle] `[IN]`容器句柄
-    ///
-    /// [alg_id] `[IN]`会话密钥的算法标识
-    ///
-    /// [key_blob] `[IN]`外部输入的公钥结构
-    ///
-    /// [cipher_blob] `[OUT]`会话密钥密文
-    ///
-    /// [session_key] `[OUT]`会话密钥句柄
-    pub fn SKF_ECCExportSessionKey(
-        ct_handle: HANDLE,
-        alg_id: ULONG,
-        key_blob: *const ECCPublicKeyBlob,
-        cipher_blob: *mut ECCCipherBlob,
-        session_key: *mut HANDLE,
-    ) -> ULONG;
-
     /// 使用外部传入的ECC公钥对输入数据做加密运算并输出结果
     ///
     /// [device_handle] `[IN]`设备句柄
@@ -331,6 +293,43 @@ extern "C" {
         data_len: ULONG,
         signature: *const ECCSignatureBlob,
     ) -> ULONG;
+    /// 用ECC公钥对数据进行验签
+    ///
+    /// [device_handle] `[IN]`设备句柄
+    ///
+    /// [key_blob] `[IN]`ECC公钥数据结构
+    ///
+    /// [data] `[IN]`待签数据的杂凑值。当使用 SM2算法时，该输入数据为待签数据经过`SM2`签名预处理的结果，预处理过程遵循`GM/T 0009`
+    ///
+    /// [data_len] `[IN]`数据长度
+    ///
+    /// [signature] `[IN]`待验证的签名值
+    pub fn SKF_ECCVerify(
+        device_handle: HANDLE,
+        key_blob: *const ECCPublicKeyBlob,
+        data: *const BYTE,
+        data_len: ULONG,
+        signature: *const ECCSignatureBlob,
+    ) -> ULONG;
+
+    /// 生成会话密钥并用外部公钥加密输出
+    ///
+    /// [ct_handle] `[IN]`容器句柄
+    ///
+    /// [alg_id] `[IN]`会话密钥的算法标识
+    ///
+    /// [key_blob] `[IN]`外部输入的公钥结构
+    ///
+    /// [cipher_blob] `[OUT]`会话密钥密文
+    ///
+    /// [session_key] `[OUT]`会话密钥句柄
+    pub fn SKF_ECCExportSessionKey(
+        ct_handle: HANDLE,
+        alg_id: ULONG,
+        key_blob: *const ECCPublicKeyBlob,
+        cipher_blob: *mut ECCCipherBlob,
+        session_key: *mut HANDLE,
+    ) -> ULONG;
 
     /// 生成ECC签名密钥对
     ///
@@ -398,7 +397,7 @@ extern "C" {
     ///
     /// [alg_id] `[IN]`会话密钥算法标识
     ///
-    /// [key_blob] `[IN]`发起方临时ECC公钥
+    /// [key_blob] `[OUT]`发起方临时ECC公钥
     ///
     /// [id_data] `[IN]`发起方的ID
     ///
@@ -408,7 +407,7 @@ extern "C" {
     pub fn SKF_GenerateAgreementDataWithECC(
         ct_handle: HANDLE,
         alg_id: ULONG,
-        key_blob: *const ECCPublicKeyBlob,
+        key_blob: *mut ECCPublicKeyBlob,
         id_data: *const BYTE,
         id_len: ULONG,
         key_handle: *mut HANDLE,
@@ -422,9 +421,9 @@ extern "C" {
     ///
     /// [sponsor_key] `[IN]`发起方的ECC公钥
     ///
-    /// [sponsor_tmp_key] `[OUT]`发起方的临时ECC公钥
+    /// [sponsor_tmp_key] `[IN]`发起方的临时ECC公钥
     ///
-    /// [key_blob] `[IN]`响应方的临时ECC公钥
+    /// [key_blob] `[OUT]`响应方的临时ECC公钥
     ///
     /// [id] `[IN]`响应方的ID
     ///
@@ -432,7 +431,9 @@ extern "C" {
     ///
     /// [sponsor_id] `[IN]`发起方的ID
     ///
-    /// [sponsor_id_len] `[OUT]`发起方ID的长度，不大于32
+    /// [sponsor_id_len] `[IN]`发起方ID的长度，不大于32
+    ///
+    /// [key_handle] `[OUT]` 返回对称算法密钥句柄
     pub fn SKF_GenerateAgreementDataAndKeyWithECC(
         ct_handle: HANDLE,
         alg_id: ULONG,

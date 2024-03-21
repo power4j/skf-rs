@@ -3,7 +3,7 @@ use crate::error::{InvalidArgumentError, SkfErr};
 use crate::{BlockCipherParameter, Error, ManagedKey, Result, SkfBlockCipher};
 use skf_api::native::error::SAR_OK;
 use skf_api::native::types::{BlockCipherParam, BYTE, HANDLE, MAX_IV_LEN, ULONG};
-use std::fmt::Debug;
+use std::fmt::{Debug, Formatter};
 use std::sync::Arc;
 use tracing::{instrument, trace};
 
@@ -29,7 +29,11 @@ impl AsRef<HANDLE> for ManagedKeyImpl {
 }
 
 impl ManagedKey for ManagedKeyImpl {}
-
+impl Debug for dyn ManagedKey {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Handle:{:p}", self.as_ref())
+    }
+}
 impl ManagedKeyImpl {
     pub(crate) fn try_new(handle: HANDLE, lib: &Arc<libloading::Library>) -> Result<Self> {
         let close_fn = unsafe { SymbolBundle::new(lib, b"SKF_CloseHandle\0")? };

@@ -137,17 +137,17 @@ impl DeviceManager for ManagerImpl {
     fn connect_selected(
         &self,
         selector: fn(Vec<&str>) -> Option<&str>,
-    ) -> Result<Option<Box<dyn SkfDevice>>> {
+    ) -> Result<Box<dyn SkfDevice>> {
         let list = self.enumerate_device_name(true)?;
         if list.is_empty() {
-            Ok(None)
+            Err(Error::NotFound("No device found".to_string()))
         } else {
             let names: Vec<&str> = list.iter().map(|x| &**x).collect();
             if let Some(name) = selector(names) {
                 let dev = self.connect(name)?;
-                return Ok(Some(dev));
+                return Ok(dev);
             }
-            Ok(None)
+            Err(Error::NotFound("No matched device".to_string()))
         }
     }
 }

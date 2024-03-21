@@ -8,10 +8,7 @@ pub const AUTH_KEY: [u8; 16] = [
 fn main() {
     let engine = Engine::new(LibLoader::env_lookup().unwrap());
     let manager = engine.device_manager().unwrap();
-    let device = manager
-        .connect_selected(|list| Some(list[0]))
-        .unwrap()
-        .unwrap();
+    let device = manager.connect_selected(|list| Some(list[0])).unwrap();
     let auth_key = encrypt_auth_key_sm1_ecb(device.as_ref(), &AUTH_KEY).unwrap();
     let _ = device.device_auth(auth_key.as_slice());
     let app_list = device.enumerate_app_name().unwrap();
