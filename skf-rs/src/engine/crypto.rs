@@ -12,7 +12,7 @@ pub(crate) struct ManagedKeyImpl {
     handle: HANDLE,
 }
 impl Debug for ManagedKeyImpl {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         write!(f, "ManagedKeyImpl")
     }
 }
@@ -41,12 +41,13 @@ impl ManagedKeyImpl {
     }
 
     #[instrument]
-    pub(crate) fn close(&self) -> Result<()> {
+    pub(crate) fn close(&mut self) -> Result<()> {
         let ret = unsafe { (self.close_fn)(self.handle) };
         trace!("[SKF_CloseHandle]: ret = {}", ret);
         if ret != SAR_OK {
             return Err(Error::Skf(SkfErr::of_code(ret)));
         }
+        self.handle = std::ptr::null();
         Ok(())
     }
 }
@@ -55,7 +56,7 @@ pub(crate) struct SkfBlockCipherImpl {
     symbols: ModBlockCipher,
 }
 impl Debug for SkfBlockCipherImpl {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         write!(f, "SkfBlockCipherImpl")
     }
 }

@@ -105,7 +105,7 @@ impl ECCCipherBlob {
         let mut v: Vec<u8> = Vec::with_capacity(self.dst_size());
         unsafe {
             std::ptr::copy(
-                self.x_coordinate.as_ptr() as *const u8,
+                self.x_coordinate.as_ptr(),
                 v.as_mut_ptr(),
                 Self::CIPHER_INDEX,
             );

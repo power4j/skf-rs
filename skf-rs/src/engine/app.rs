@@ -3,13 +3,13 @@ use crate::engine::symbol::{ModApp, ModContainer};
 use crate::error::{SkfErr, SkfPinVerifyError};
 use crate::helper::{mem, param};
 use crate::{
-    AppSecurity, ContainerManager, EnvelopedKeyData, Error, FileAttr, FileAttrBuilder, FileManager,
-    ManagedKey, PinInfo, SkfApp, SkfContainer, FILE_PERM_NONE,
+    AppSecurity, ContainerManager, ECCEncryptedData, EnvelopedKeyData, Error, FileAttr,
+    FileAttrBuilder, FileManager, ManagedKey, PinInfo, SkfApp, SkfContainer, FILE_PERM_NONE,
 };
 use skf_api::native::error::{SAR_OK, SAR_PIN_INCORRECT};
 use skf_api::native::types::{
-    ECCCipherBlob, ECCPrivateKeyBlob, ECCPublicKeyBlob, ECCSignatureBlob, EnvelopedKeyBlob,
-    FileAttribute, BOOL, BYTE, CHAR, FALSE, HANDLE, LPSTR, TRUE, ULONG,
+    ECCCipherBlob, ECCPublicKeyBlob, ECCSignatureBlob, EnvelopedKeyBlob, FileAttribute, BOOL, BYTE,
+    CHAR, FALSE, HANDLE, LPSTR, TRUE, ULONG,
 };
 use std::fmt::Debug;
 use std::sync::Arc;
@@ -218,7 +218,7 @@ impl FileManager for SkfAppImpl {
             String::from_utf8_lossy(&buff)
         );
         // The spec says string list end with two '\0',but vendor may not do it
-        let list = unsafe { mem::parse_cstr_list_lossy(buff.as_ptr() as *const u8, buff.len()) };
+        let list = unsafe { mem::parse_cstr_list_lossy(buff.as_ptr(), buff.len()) };
         Ok(list)
     }
 
@@ -740,5 +740,49 @@ impl SkfContainer for SkfContainerImpl {
             SAR_OK => Ok(Box::new(managed_key)),
             _ => Err(Error::Skf(SkfErr::of_code(ret))),
         }
+    }
+
+    #[instrument]
+    fn sk_export(
+        &self,
+        alg_id: u32,
+        key: &ECCPublicKeyBlob,
+    ) -> crate::Result<(Box<dyn ManagedKey>, ECCEncryptedData)> {
+        let func = self.symbols.ct_sk_exp.as_ref().expect("Symbol not load");
+        let mut handle: HANDLE = std::ptr::null_mut();
+        // guess 256 is big enough
+        let buff_size = ECCCipherBlob::size_of(256);
+        let mut buff: Vec<u8> = vec![0; buff_size];
+
+        let ret = unsafe {
+            func(
+                self.handle,
+                alg_id as ULONG,
+                key as *const ECCPublicKeyBlob,
+                buff.as_mut_ptr() as *mut ECCCipherBlob,
+                &mut handle,
+            )
+        };
+        trace!("[SKF_ECCExportSessionKey]: ret = {}", ret);
+        if ret != SAR_OK {
+            return Err(Error::Skf(SkfErr::of_code(ret)));
+        }
+        let blob = unsafe {
+            let cb = &*(buff.as_ptr() as *const ECCCipherBlob);
+            let mut cipher: Vec<u8> = vec![];
+            if cb.cipher_len > 0 {
+                let len = cb.cipher_len as usize;
+                cipher = vec![0; len];
+                std::ptr::copy(cb.cipher.as_ptr(), cipher.as_mut_ptr(), len);
+            }
+            ECCEncryptedData {
+                ec_x: cb.x_coordinate,
+                ec_y: cb.y_coordinate,
+                hash: cb.hash,
+                cipher,
+            }
+        };
+        let managed_key = ManagedKeyImpl::try_new(handle, &self.lib)?;
+        Ok((Box::new(managed_key), blob))
     }
 }

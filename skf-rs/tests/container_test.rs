@@ -1,9 +1,10 @@
-use crate::common::{
-    describe_result, get_or_create_test_container_1, EC_CER_DATA, SK_INITIATOR_ID, SK_RESPONDER_ID,
-};
-use skf_api::native::types::{ECCPublicKeyBlob, ECCSignatureBlob};
+use skf_api::native::types::ECCPublicKeyBlob;
 use skf_rs::spec::algorithm::SGD_SM4_ECB;
-use skf_rs::{EnvelopedKeyData, ManagedKey};
+use skf_rs::EnvelopedKeyData;
+
+use crate::common::{
+    describe_result, get_or_create_test_container_1, SK_INITIATOR_ID, SK_RESPONDER_ID,
+};
 
 mod common;
 
@@ -15,9 +16,7 @@ fn invoke_container_fn() {
     let ret = container.get_type();
     println!("invoke get_type result: {:?}", &ret);
 
-    let cer = hex::decode(EC_CER_DATA).unwrap();
-    let ret = container.import_certificate(true, &cer);
-    //let ret = container.import_certificate(true, &[0u8; 256]);
+    let ret = container.import_certificate(true, &[0u8; 256]);
     println!(
         "invoke import_certificate result: {:?}",
         describe_result(&ret)
@@ -69,4 +68,7 @@ fn invoke_container_fn() {
 
     let ret = container.sk_import(SGD_SM4_ECB, &[0u8; 32]);
     println!("invoke sk_import result: {:?}", describe_result(&ret));
+
+    let ret = container.sk_export(SGD_SM4_ECB, &ECCPublicKeyBlob::default());
+    println!("invoke sk_export result: {:?}", describe_result(&ret));
 }

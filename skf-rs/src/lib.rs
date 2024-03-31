@@ -3,10 +3,8 @@ mod error;
 pub mod helper;
 pub mod spec;
 
-use skf_api::native::types::{
-    ECCPrivateKeyBlob, ECCPublicKeyBlob, ECCSignatureBlob, BYTE, HANDLE, ULONG,
-};
-use std::fmt::{Debug, Formatter};
+use skf_api::native::types::{ECCPrivateKeyBlob, ECCPublicKeyBlob, ECCSignatureBlob, HANDLE};
+use std::fmt::Debug;
 use std::time::Duration;
 
 pub type Error = error::Error;
@@ -171,6 +169,7 @@ pub trait DeviceCtl {
     fn transmit(&self, command: &[u8], recv_capacity: usize) -> Result<Vec<u8>>;
 }
 
+/// Cryptographic services provided by SKF device objects
 pub trait DeviceCrypto {
     /// Generate random data
     ///
@@ -247,7 +246,11 @@ pub trait DeviceCrypto {
     ///
     /// [agreement_key] - The agreement key,returned by `SkfContainer::sk_gen_agreement_data`
     ///
-    /// [
+    /// [responder_key] - The responder's public key
+    ///
+    /// [responder_tmp_key] - The responder's temporary public key,returned by `SkfContainer::sk_gen_agreement_data_and_key`
+    ///
+    /// [responder_id] - Responder's ID,max 32 bytes
     fn ecc_gen_session_key(
         &self,
         agreement_key: &dyn ManagedKey,
@@ -266,6 +269,7 @@ pub struct AppAttr {
     pub create_file_rights: u32,
 }
 
+/// Application management
 pub trait AppManager {
     ///  Enumerate all apps in the device,return app names
     fn enumerate_app_name(&self) -> Result<Vec<String>>;
@@ -290,6 +294,8 @@ pub trait AppManager {
     /// [name] - The app name to delete
     fn delete_app(&self, name: &str) -> Result<()>;
 }
+
+/// Device authentication
 pub trait DeviceAuth {
     /// Device authentication
     ///
@@ -312,7 +318,7 @@ pub trait DeviceAuth {
 /// ## Disconnect
 /// Device instance is disconnected when `Drop`
 pub trait SkfDevice: DeviceCtl + DeviceAuth + AppManager + DeviceCrypto {
-    /// get block cipher service
+    /// Block cipher service
     fn block_cipher(&self) -> Result<Box<dyn SkfBlockCipher + Send + Sync>>;
 }
 
@@ -329,6 +335,7 @@ pub struct PinInfo {
     pub remain_retry_count: u32,
     pub default_pin: bool,
 }
+
 pub trait AppSecurity {
     /// Lock device for exclusive access
     ///
@@ -584,6 +591,17 @@ pub trait SkfContainer {
     ///
     /// [key_data] - The session key data
     fn sk_import(&self, alg_id: u32, key_data: &[u8]) -> Result<Box<dyn ManagedKey>>;
+
+    /// Generate session key and export it
+    ///
+    /// [alg_id] - The algorithm id used for session key generation
+    ///
+    /// [key] - The public key,used for encrypt session key
+    fn sk_export(
+        &self,
+        alg_id: u32,
+        key: &ECCPublicKeyBlob,
+    ) -> Result<(Box<dyn ManagedKey>, ECCEncryptedData)>;
 }
 
 pub type Hash256 = [u8; 32];

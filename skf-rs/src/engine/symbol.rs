@@ -1,5 +1,5 @@
 use libloading::{Library, Symbol};
-use skf_api::native::types::{ECCPublicKeyBlob, BOOL, BYTE, HANDLE, ULONG};
+
 use std::sync::Arc;
 
 /// Symbol bundle with library pointer
@@ -482,7 +482,6 @@ pub(crate) struct ModContainer {
     pub ct_ecc_gen_pair: Option<crypto_fn::SKF_GenECCKeyPair>,
     pub ct_ecc_imp_pair: Option<crypto_fn::SKF_ImportECCKeyPair>,
     pub ct_ecc_sign: Option<crypto_fn::SKF_ECCSignData>,
-    pub ct_ecc_verify: Option<crypto_fn::SKF_ECCVerify>,
     pub ct_sk_gen_agreement: Option<crypto_fn::SKF_GenerateAgreementDataWithECC>,
     pub ct_sk_gen_agreement_and_key: Option<crypto_fn::SKF_GenerateAgreementDataAndKeyWithECC>,
     pub ct_ecc_exp_pub_key: Option<crypto_fn::SKF_ExportPublicKey>,
@@ -499,7 +498,6 @@ impl ModContainer {
         let ct_ecc_gen_pair = Some(unsafe { SymbolBundle::new(lib, b"SKF_GenECCKeyPair\0")? });
         let ct_ecc_imp_pair = Some(unsafe { SymbolBundle::new(lib, b"SKF_ImportECCKeyPair\0")? });
         let ct_ecc_sign = Some(unsafe { SymbolBundle::new(lib, b"SKF_ECCSignData\0")? });
-        let ct_ecc_verify = Some(unsafe { SymbolBundle::new(lib, b"SKF_ECCVerify\0")? });
         let ct_sk_gen_agreement =
             Some(unsafe { SymbolBundle::new(lib, b"SKF_GenerateAgreementDataWithECC\0")? });
         let ct_sk_gen_agreement_and_key =
@@ -515,7 +513,6 @@ impl ModContainer {
             ct_ecc_gen_pair,
             ct_ecc_imp_pair,
             ct_ecc_sign,
-            ct_ecc_verify,
             ct_sk_gen_agreement,
             ct_sk_gen_agreement_and_key,
             ct_ecc_exp_pub_key,
