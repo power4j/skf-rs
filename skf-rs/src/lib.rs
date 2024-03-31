@@ -3,7 +3,8 @@ mod error;
 pub mod helper;
 pub mod spec;
 
-use skf_api::native::types::HANDLE;
+use skf_api::native::types::{ECCPrivateKeyBlob, ECCPublicKeyBlob, ECCSignatureBlob, HANDLE};
+use std::fmt::Debug;
 use std::time::Duration;
 
 pub type Error = error::Error;
@@ -18,50 +19,52 @@ pub struct PluginEvent {
     pub event: u8,
 }
 
-impl PluginEvent {
-    /// The device is plugged in
-    pub const EVENT_PLUGGED_IN: u8 = 1;
+/// 256-bit hash value
+pub type HASH256 = [u8; 32];
 
-    /// The device is unplugged
-    pub const EVENT_UNPLUGGED: u8 = 2;
-
-    pub fn new(device_name: impl Into<String>, event: u8) -> Self {
+/// ECC encrypt output,Wrapper of [DST](https://doc.rust-lang.org/reference/dynamically-sized-types.html) `ECCCipherBlob`
+#[derive(Debug)]
+pub struct ECCEncryptedData {
+    pub ec_x: [u8; 64],
+    pub ec_y: [u8; 64],
+    pub hash: HASH256,
+    pub cipher: Vec<u8>,
+}
+impl Default for ECCEncryptedData {
+    fn default() -> Self {
         Self {
-            device_name: device_name.into(),
-            event,
-        }
-    }
-
-    pub fn plugged_in(device_name: impl AsRef<str>) -> Self {
-        Self {
-            device_name: device_name.as_ref().to_string(),
-            event: Self::EVENT_PLUGGED_IN,
-        }
-    }
-
-    pub fn unplugged(device_name: impl AsRef<str>) -> Self {
-        Self {
-            device_name: device_name.as_ref().to_string(),
-            event: Self::EVENT_UNPLUGGED,
-        }
-    }
-
-    pub fn is_plugged_in(&self) -> bool {
-        self.event == Self::EVENT_PLUGGED_IN
-    }
-
-    pub fn is_unplugged(&self) -> bool {
-        self.event == Self::EVENT_UNPLUGGED
-    }
-
-    pub fn event_description(&self) -> &'static str {
-        match self.event {
-            Self::EVENT_PLUGGED_IN => "plugged in",
-            Self::EVENT_UNPLUGGED => "unplugged",
-            _ => "unknown",
+            ec_x: [0; 64],
+            ec_y: [0; 64],
+            hash: [0; 32],
+            cipher: vec![],
         }
     }
 }
+
+/// ECC Enveloped key,Wrapper of [DST](https://doc.rust-lang.org/reference/dynamically-sized-types.html) `EnvelopedKeyBlob`
+#[derive(Debug)]
+pub struct EnvelopedKeyData {
+    pub version: u32,
+    pub sym_alg_id: u32,
+    pub bits: u32,
+    pub encrypted_pri_key: [u8; 64],
+    pub pub_key: ECCPublicKeyBlob,
+    pub ecc_cipher: ECCEncryptedData,
+}
+
+impl Default for EnvelopedKeyData {
+    fn default() -> Self {
+        Self {
+            version: 0,
+            sym_alg_id: 0,
+            bits: 0,
+            encrypted_pri_key: [0u8; 64],
+            pub_key: ECCPublicKeyBlob::default(),
+            ecc_cipher: ECCEncryptedData::default(),
+        }
+    }
+}
+
 #[derive(Debug, Default)]
 pub struct Version {
     pub major: u8,
@@ -126,10 +129,13 @@ pub trait DeviceManager {
     /// Connect to device by enumerate all devices and select one,if no device matches the selector, None will be returned
     ///
     /// [selector] - The device selector,if device list is not empty, the selector will be invoked to select one
+    ///
+    /// ## error
+    /// - `Error::NotFound` returned means there is no device to connect,or the selector returns None
     fn connect_selected(
         &self,
         selector: fn(Vec<&str>) -> Option<&str>,
-    ) -> Result<Option<Box<dyn SkfDevice>>>;
+    ) -> Result<Box<dyn SkfDevice>>;
 }
 
 pub trait DeviceCtl {
@@ -161,7 +167,10 @@ pub trait DeviceCtl {
     ///
     /// This function is for testing purpose
     fn transmit(&self, command: &[u8], recv_capacity: usize) -> Result<Vec<u8>>;
+}
 
+/// Cryptographic services provided by SKF device objects
+pub trait DeviceCrypto {
     /// Generate random data
     ///
     /// [len] - The random data length to generate,in bytes
@@ -175,6 +184,80 @@ pub trait DeviceCtl {
     /// ## Owner object lifetime requirement
     /// If owner object([SkfDevice]) is dropped, the key will be invalid
     fn set_symmetric_key(&self, alg_id: u32, key: &[u8]) -> Result<Box<dyn ManagedKey>>;
+
+    /// Encrypt data,using external ecc public key
+    ///
+    /// [key] - The public key
+    ///
+    /// [data] - The data to encrypt
+    fn ext_ecc_encrypt(&self, key: &ECCPublicKeyBlob, data: &[u8]) -> Result<ECCEncryptedData>;
+
+    /// Decrypt data,using external ecc private key
+    ///
+    /// [key] - The private key
+    ///
+    /// [cipher] - The encrypted data,returned by `ext_ecc_encrypt`
+    fn ext_ecc_decrypt(
+        &self,
+        key: &ECCPrivateKeyBlob,
+        cipher: &ECCEncryptedData,
+    ) -> Result<Vec<u8>>;
+
+    /// Sign data,using external ecc private key
+    ///
+    /// [key] - The private key
+    ///
+    /// [data] - The data to sign
+    fn ext_ecc_sign(&self, key: &ECCPrivateKeyBlob, data: &[u8]) -> Result<ECCSignatureBlob>;
+
+    /// Verify signature,using external ecc public key
+    ///
+    /// [key] - The public key
+    ///
+    /// [data] - The data to verify
+    ///
+    /// [signature] - The signature,returned by `ext_ecc_sign`
+    fn ext_ecc_verify(
+        &self,
+        key: &ECCPublicKeyBlob,
+        data: &[u8],
+        signature: &ECCSignatureBlob,
+    ) -> Result<()>;
+
+    /// Verify signature
+    ///
+    /// [key] - The public key
+    ///
+    /// [hash] - The hash value of data.
+    /// When using the SM2 algorithm, the data is the result of pre-processing the data to be
+    /// signed through the SM2 signature pre-processing. The pre-processing procedure follows `GM/T 0009`.
+    ///
+    /// [signature] - The signature,returned by `ext_ecc_sign`
+    fn ecc_verify(
+        &self,
+        key: &ECCPublicKeyBlob,
+        hash: &[u8],
+        signature: &ECCSignatureBlob,
+    ) -> Result<()>;
+
+    /// Key exchange step: generate session key for initiator
+    ///
+    /// see [SKF_GenerateKeyWithECC] for more details
+    ///
+    /// [agreement_key] - The agreement key,returned by `SkfContainer::sk_gen_agreement_data`
+    ///
+    /// [responder_key] - The responder's public key
+    ///
+    /// [responder_tmp_key] - The responder's temporary public key,returned by `SkfContainer::sk_gen_agreement_data_and_key`
+    ///
+    /// [responder_id] - Responder's ID,max 32 bytes
+    fn ecc_gen_session_key(
+        &self,
+        agreement_key: &dyn ManagedKey,
+        responder_key: &ECCPublicKeyBlob,
+        responder_tmp_key: &ECCPublicKeyBlob,
+        responder_id: &[u8],
+    ) -> Result<Box<dyn ManagedKey>>;
 }
 
 #[derive(Debug, Default)]
@@ -186,6 +269,7 @@ pub struct AppAttr {
     pub create_file_rights: u32,
 }
 
+/// Application management
 pub trait AppManager {
     ///  Enumerate all apps in the device,return app names
     fn enumerate_app_name(&self) -> Result<Vec<String>>;
@@ -210,7 +294,9 @@ pub trait AppManager {
     /// [name] - The app name to delete
     fn delete_app(&self, name: &str) -> Result<()>;
 }
-pub trait DeviceSecurity {
+
+/// Device authentication
+pub trait DeviceAuth {
     /// Device authentication
     ///
     /// [data] - The authentication data
@@ -231,8 +317,8 @@ pub trait DeviceSecurity {
 /// Represents a device instance,call `DeviceManager::connect()` or `DeviceManager::connect_selected()` to get one
 /// ## Disconnect
 /// Device instance is disconnected when `Drop`
-pub trait SkfDevice: DeviceCtl + DeviceSecurity + AppManager {
-    /// get block cipher service
+pub trait SkfDevice: DeviceCtl + DeviceAuth + AppManager + DeviceCrypto {
+    /// Block cipher service
     fn block_cipher(&self) -> Result<Box<dyn SkfBlockCipher + Send + Sync>>;
 }
 
@@ -249,6 +335,7 @@ pub struct PinInfo {
     pub remain_retry_count: u32,
     pub default_pin: bool,
 }
+
 pub trait AppSecurity {
     /// Lock device for exclusive access
     ///
@@ -421,8 +508,105 @@ pub trait SkfContainer {
     ///
     /// [signer] - True means The exported certificate is used for sign
     fn export_certificate(&self, signer: bool) -> Result<Vec<u8>>;
+
+    /// Generate ECC key pair(signing part),the private key will be stored in the container.
+    ///
+    /// see [SKF_GenECCKeyPair] for more details
+    ///
+    /// [alg_id] - The algorithm id, supported values is `SGD_SM2_1`
+    fn ecc_gen_key_pair(&self, alg_id: u32) -> Result<ECCPublicKeyBlob>;
+
+    /// Import ECC key pair( encryption part) to container.
+    ///
+    /// see [SKF_ImportECCKeyPair] for more details
+    ///
+    /// [enveloped_key] - The enveloped key data
+    ///
+    /// ## permission state requirement
+    /// user permission
+    fn ecc_import_key_pair(&self, enveloped_key: &EnvelopedKeyData) -> Result<()>;
+
+    /// Export ECC public key from container.
+    ///
+    /// see [SKF_ExportPublicKey] for more details
+    ///
+    /// [sign_part] - True means The exported public key is used for sign
+    fn ecc_export_public_key(&self, sign_part: bool) -> Result<Vec<u8>>;
+
+    /// Sign data use signing key in the container
+    ///
+    /// see [SKF_ECCSignData] for more details
+    ///
+    /// [hash] - The hash value of data.
+    /// When using the SM2 algorithm, the data is the result of pre-processing the data to be
+    /// signed through the SM2 signature pre-processing. The pre-processing procedure follows `GM/T 0009`.
+    fn ecc_sign(&self, hash: &[u8]) -> Result<ECCSignatureBlob>;
+
+    /// Key exchange step: generate ephemeral public key and  agreement key for initiator
+    ///
+    /// see [SKF_GenerateAgreementDataWithECC] for more details
+    ///
+    /// [alg_id] - The algorithm id used for session key generation
+    ///
+    /// [id] - Initiator's ID,max 32 bytes
+    ///
+    /// ## Return value
+    /// return ephemeral public key and key agreement handle
+    fn sk_gen_agreement_data(
+        &self,
+        alg_id: u32,
+        id: &[u8],
+    ) -> Result<(ECCPublicKeyBlob, Box<dyn ManagedKey>)>;
+
+    /// Key exchange step: generate ephemeral public key and session key for responder
+    ///
+    /// see [SKF_GenerateAgreementDataAndKeyWithECC] for more details
+    ///
+    /// [alg_id] - The algorithm id used for session key generation
+    ///
+    /// [initiator_key] - Initiator's public key
+    ///
+    /// [initiator_tmp_key] - Initiator's ephemeral public key
+    ///
+    /// [initiator_id] - Initiator's ID,max 32 bytes
+    ///
+    /// [responder_id] - Responder's ID,max 32 bytes
+    ///
+    /// ## Return value
+    /// return ephemeral public key and session key handle
+    fn sk_gen_agreement_data_and_key(
+        &self,
+        alg_id: u32,
+        initiator_key: &ECCPublicKeyBlob,
+        initiator_tmp_key: &ECCPublicKeyBlob,
+        initiator_id: &[u8],
+        responder_id: &[u8],
+    ) -> Result<(ECCPublicKeyBlob, Box<dyn ManagedKey>)>;
+
+    /// Import session key
+    ///
+    /// see [SKF_ImportSessionKey] for more details
+    ///
+    /// [alg_id] - The algorithm id
+    ///
+    /// [key_data] - The session key data
+    fn sk_import(&self, alg_id: u32, key_data: &[u8]) -> Result<Box<dyn ManagedKey>>;
+
+    /// Generate session key and export it
+    ///
+    /// [alg_id] - The algorithm id used for session key generation
+    ///
+    /// [key] - The public key,used for encrypt session key
+    fn sk_export(
+        &self,
+        alg_id: u32,
+        key: &ECCPublicKeyBlob,
+    ) -> Result<(Box<dyn ManagedKey>, ECCEncryptedData)>;
 }
 
+pub type Hash256 = [u8; 32];
+
+/// Block cipher parameter,wrapper of `BlockCipherParam`
 #[derive(Debug, Default)]
 pub struct BlockCipherParameter {
     /// IV data,max 32 bytes,Empty means no IV

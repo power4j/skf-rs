@@ -4,6 +4,8 @@ use std::fmt::{Debug, Display, Formatter};
 pub enum Error {
     #[error(transparent)]
     InvalidArgument(#[from] InvalidArgumentError),
+    #[error("`{0}`")]
+    NotFound(String),
     #[error(transparent)]
     LibLoading(#[from] libloading::Error),
     #[error(transparent)]

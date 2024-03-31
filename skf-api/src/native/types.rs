@@ -117,7 +117,8 @@ pub struct RSAPrivateKeyBlob {
 #[derive(Debug, Copy, Clone)]
 #[repr(C, packed(1))]
 pub struct ECCPublicKeyBlob {
-    pub bit_leb: ULONG,
+    /// The real length of x and y
+    pub bit_len: ULONG,
     pub x_coordinate: [BYTE; ECC_MAX_X_COORDINATE_BITS_LEN / 8],
     pub y_coordinate: [BYTE; ECC_MAX_Y_COORDINATE_BITS_LEN / 8],
 }
@@ -126,7 +127,8 @@ pub struct ECCPublicKeyBlob {
 #[derive(Debug, Copy, Clone)]
 #[repr(C, packed(1))]
 pub struct ECCPrivateKeyBlob {
-    pub bit_leb: ULONG,
+    /// The real length of the key
+    pub bit_len: ULONG,
     pub private_key: [BYTE; ECC_MAX_MODULUS_BITS_LEN / 8],
 }
 
@@ -152,7 +154,7 @@ pub struct ECCSignatureBlob {
 /// The structure of `ENVELOPEDKEYBLOB`
 #[derive(Debug, Copy, Clone)]
 #[repr(C, packed(1))]
-pub struct SKFEnvelopedKeyBlob {
+pub struct EnvelopedKeyBlob {
     pub version: ULONG,
     pub sym_alg_id: ULONG,
     pub bits: ULONG,
