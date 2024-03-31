@@ -1,10 +1,9 @@
 mod common;
 
 use crate::common::{
-    get_or_create_test_app_1, get_or_create_test_container_1, verify_admin_pin, verify_user_pin,
-    TEST_ADMIN_PIN, TEST_FILE_NAME_1, TEST_USER_PIN,
+    describe_result, get_or_create_test_app_1, verify_admin_pin, verify_user_pin, TEST_ADMIN_PIN,
+    TEST_FILE_NAME_1, TEST_USER_PIN,
 };
-use skf_rs::helper::describe_result;
 use skf_rs::{FileAttr, FILE_PERM_EVERYONE, PIN_TYPE_USER};
 
 #[test]
@@ -77,28 +76,6 @@ fn container_ctl_test() {
 
     let ret = app.delete_container("container-xxx");
     println!("invoke delete_container result: {:?}", &ret);
-}
-
-#[test]
-#[ignore]
-fn invoke_container_fn() {
-    let (_dev, _app, container) = get_or_create_test_container_1();
-
-    let ret = container.get_type();
-    println!("invoke get_type result: {:?}", &ret);
-
-    // fake cert data
-    let ret = container.import_certificate(true, &[0u8; 256]);
-    println!(
-        "invoke import_certificate result: {:?}",
-        describe_result(&ret)
-    );
-
-    let ret = container.export_certificate(true);
-    println!(
-        "invoke export_certificate result: {:?}",
-        describe_result(&ret)
-    );
 }
 
 #[test]

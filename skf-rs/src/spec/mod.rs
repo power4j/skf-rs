@@ -41,12 +41,17 @@ pub mod algorithm {
 
     pub const SGD_RSA: u32 = 0x00010000;
 
+    /// SM2 ECC
     pub const SGD_SM2: u32 = 0x00020100;
 
+    /// SM2 ECC(Sign)
+
     pub const SGD_SM2_1: u32 = 0x00020200;
+    /// SM2 ECC(key exchange)
 
     pub const SGD_SM2_2: u32 = 0x00020400;
 
+    /// SM2 ECC(encryption)
     pub const SGD_SM2_3: u32 = 0x00020800;
 
     pub const SGD_SM3: u32 = 0x00000001;

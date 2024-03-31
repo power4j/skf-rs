@@ -1,4 +1,5 @@
 use libloading::{Library, Symbol};
+
 use std::sync::Arc;
 
 /// Symbol bundle with library pointer
@@ -151,7 +152,10 @@ pub(crate) mod container_fn {
 #[allow(non_camel_case_types)]
 pub(crate) mod crypto_fn {
     use crate::engine::symbol::SymbolBundle;
-    use skf_api::native::types::{BlockCipherParam, BYTE, HANDLE, ULONG};
+    use skf_api::native::types::{
+        BlockCipherParam, ECCCipherBlob, ECCPrivateKeyBlob, ECCPublicKeyBlob, ECCSignatureBlob,
+        EnvelopedKeyBlob, BOOL, BYTE, HANDLE, ULONG,
+    };
     pub(crate) type SKF_GenRandom =
         SymbolBundle<unsafe extern "C" fn(HANDLE, *mut BYTE, ULONG) -> ULONG>;
     pub(crate) type SKF_CloseHandle = SymbolBundle<unsafe extern "C" fn(HANDLE) -> ULONG>;
@@ -177,6 +181,131 @@ pub(crate) mod crypto_fn {
     >;
     pub(super) type SKF_DecryptFinal =
         SymbolBundle<unsafe extern "C" fn(HANDLE, *mut BYTE, *mut ULONG) -> ULONG>;
+
+    pub(super) type SKF_ExtECCEncrypt = SymbolBundle<
+        unsafe extern "C" fn(
+            HANDLE,
+            *const ECCPublicKeyBlob,
+            *const BYTE,
+            ULONG,
+            *mut ECCCipherBlob,
+        ) -> ULONG,
+    >;
+
+    pub(super) type SKF_ExtECCDecrypt = SymbolBundle<
+        unsafe extern "C" fn(
+            HANDLE,
+            *const ECCPrivateKeyBlob,
+            *const ECCCipherBlob,
+            *mut BYTE,
+            *mut ULONG,
+        ) -> ULONG,
+    >;
+
+    pub(super) type SKF_ExtECCSign = SymbolBundle<
+        unsafe extern "C" fn(
+            HANDLE,
+            *const ECCPrivateKeyBlob,
+            *const BYTE,
+            ULONG,
+            *mut ECCSignatureBlob,
+        ) -> ULONG,
+    >;
+
+    pub(super) type SKF_ExtECCVerify = SymbolBundle<
+        unsafe extern "C" fn(
+            HANDLE,
+            *const ECCPublicKeyBlob,
+            *const BYTE,
+            ULONG,
+            *const ECCSignatureBlob,
+        ) -> ULONG,
+    >;
+    pub(super) type SKF_GenECCKeyPair =
+        SymbolBundle<unsafe extern "C" fn(HANDLE, ULONG, key_blob: *mut ECCPublicKeyBlob) -> ULONG>;
+
+    pub(super) type SKF_ImportECCKeyPair =
+        SymbolBundle<unsafe extern "C" fn(HANDLE, *const EnvelopedKeyBlob) -> ULONG>;
+
+    pub(super) type SKF_ECCSignData = SymbolBundle<
+        unsafe extern "C" fn(HANDLE, *const BYTE, ULONG, *mut ECCSignatureBlob) -> ULONG,
+    >;
+
+    pub(super) type SKF_ECCVerify = SymbolBundle<
+        unsafe extern "C" fn(
+            HANDLE,
+            *const ECCPublicKeyBlob,
+            *const BYTE,
+            ULONG,
+            *const ECCSignatureBlob,
+        ) -> ULONG,
+    >;
+
+    pub(super) type SKF_ECCExportSessionKey = SymbolBundle<
+        unsafe extern "C" fn(
+            HANDLE,
+            ULONG,
+            *const ECCPublicKeyBlob,
+            *mut ECCCipherBlob,
+            *mut HANDLE,
+        ) -> ULONG,
+    >;
+
+    pub(super) type SKF_GenerateAgreementDataWithECC = SymbolBundle<
+        unsafe extern "C" fn(
+            HANDLE,
+            ULONG,
+            *mut ECCPublicKeyBlob,
+            *const BYTE,
+            ULONG,
+            *mut HANDLE,
+        ) -> ULONG,
+    >;
+
+    pub(super) type SKF_GenerateAgreementDataAndKeyWithECC = SymbolBundle<
+        unsafe extern "C" fn(
+            HANDLE,
+            ULONG,
+            *const ECCPublicKeyBlob,
+            *const ECCPublicKeyBlob,
+            *mut ECCPublicKeyBlob,
+            *const BYTE,
+            ULONG,
+            *const BYTE,
+            ULONG,
+            *mut HANDLE,
+        ) -> ULONG,
+    >;
+
+    pub(super) type SKF_ExportPublicKey = SymbolBundle<
+        unsafe extern "C" fn(
+            HANDLE,
+            sign_flag: BOOL,
+            data: *mut BYTE,
+            data_len: *mut ULONG,
+        ) -> ULONG,
+    >;
+
+    pub(super) type SKF_ImportSessionKey = SymbolBundle<
+        unsafe extern "C" fn(
+            HANDLE,
+            ULONG,
+            data: *const BYTE,
+            data_len: ULONG,
+            key_handle: *mut HANDLE,
+        ) -> ULONG,
+    >;
+
+    pub(super) type SKF_GenerateKeyWithECC = SymbolBundle<
+        unsafe extern "C" fn(
+            agreement_key: HANDLE,
+            *const ECCPublicKeyBlob,
+            *const ECCPublicKeyBlob,
+            *const BYTE,
+            ULONG,
+            *mut HANDLE,
+        ) -> ULONG,
+    >;
 }
 
 #[derive(Default)]
@@ -223,6 +352,12 @@ pub(crate) struct ModDev {
     pub app_enum: Option<device_fn::SKF_EnumApplication>,
     pub gen_random: Option<crypto_fn::SKF_GenRandom>,
     pub sym_key_import: Option<crypto_fn::SKF_SetSymmKey>,
+    pub ecc_ext_encrypt: Option<crypto_fn::SKF_ExtECCEncrypt>,
+    pub ecc_ext_decrypt: Option<crypto_fn::SKF_ExtECCDecrypt>,
+    pub ecc_ext_sign: Option<crypto_fn::SKF_ExtECCSign>,
+    pub ecc_ext_verify: Option<crypto_fn::SKF_ExtECCVerify>,
+    pub ecc_verify: Option<crypto_fn::SKF_ECCVerify>,
+    pub ecc_gen_sk: Option<crypto_fn::SKF_GenerateKeyWithECC>,
 }
 
 impl ModDev {
@@ -242,6 +377,12 @@ impl ModDev {
         let app_enum = Some(unsafe { SymbolBundle::new(lib, b"SKF_EnumApplication\0")? });
         let gen_random = Some(unsafe { SymbolBundle::new(lib, b"SKF_GenRandom\0")? });
         let sym_key_import = Some(unsafe { SymbolBundle::new(lib, b"SKF_SetSymmKey\0")? });
+        let ecc_ext_encrypt = Some(unsafe { SymbolBundle::new(lib, b"SKF_ExtECCEncrypt\0")? });
+        let ecc_ext_decrypt = Some(unsafe { SymbolBundle::new(lib, b"SKF_ExtECCDecrypt\0")? });
+        let ecc_ext_sign = Some(unsafe { SymbolBundle::new(lib, b"SKF_ExtECCSign\0")? });
+        let ecc_ext_verify = Some(unsafe { SymbolBundle::new(lib, b"SKF_ExtECCVerify\0")? });
+        let ecc_verify = Some(unsafe { SymbolBundle::new(lib, b"SKF_ECCVerify\0")? });
+        let ecc_gen_sk = Some(unsafe { SymbolBundle::new(lib, b"SKF_GenerateKeyWithECC\0")? });
 
         let holder = Self {
             dev_set_label,
@@ -258,6 +399,12 @@ impl ModDev {
             app_enum,
             gen_random,
             sym_key_import,
+            ecc_ext_encrypt,
+            ecc_ext_decrypt,
+            ecc_ext_sign,
+            ecc_ext_verify,
+            ecc_verify,
+            ecc_gen_sk,
         };
         Ok(holder)
     }
@@ -328,26 +475,49 @@ impl ModApp {
 
 #[derive(Default)]
 pub(crate) struct ModContainer {
-    pub container_close: Option<container_fn::SKF_CloseContainer>,
-    pub container_get_type: Option<container_fn::SKF_GetContainerType>,
-    pub container_imp_cert: Option<container_fn::SKF_ImportCertificate>,
-    pub container_exp_cert: Option<container_fn::SKF_ExportCertificate>,
+    pub ct_close: Option<container_fn::SKF_CloseContainer>,
+    pub ct_get_type: Option<container_fn::SKF_GetContainerType>,
+    pub ct_imp_cert: Option<container_fn::SKF_ImportCertificate>,
+    pub ct_exp_cert: Option<container_fn::SKF_ExportCertificate>,
+    pub ct_ecc_gen_pair: Option<crypto_fn::SKF_GenECCKeyPair>,
+    pub ct_ecc_imp_pair: Option<crypto_fn::SKF_ImportECCKeyPair>,
+    pub ct_ecc_sign: Option<crypto_fn::SKF_ECCSignData>,
+    pub ct_sk_gen_agreement: Option<crypto_fn::SKF_GenerateAgreementDataWithECC>,
+    pub ct_sk_gen_agreement_and_key: Option<crypto_fn::SKF_GenerateAgreementDataAndKeyWithECC>,
+    pub ct_ecc_exp_pub_key: Option<crypto_fn::SKF_ExportPublicKey>,
+    pub ct_sk_imp: Option<crypto_fn::SKF_ImportSessionKey>,
+    pub ct_sk_exp: Option<crypto_fn::SKF_ECCExportSessionKey>,
 }
 
 impl ModContainer {
     pub fn load_symbols(lib: &Arc<Library>) -> crate::Result<Self> {
-        let container_close = Some(unsafe { SymbolBundle::new(lib, b"SKF_CloseContainer\0")? });
-        let container_get_type =
-            Some(unsafe { SymbolBundle::new(lib, b"SKF_GetContainerType\0")? });
-        let container_imp_cert =
-            Some(unsafe { SymbolBundle::new(lib, b"SKF_ImportCertificate\0")? });
-        let container_exp_cert =
-            Some(unsafe { SymbolBundle::new(lib, b"SKF_ExportCertificate\0")? });
+        let ct_close = Some(unsafe { SymbolBundle::new(lib, b"SKF_CloseContainer\0")? });
+        let ct_get_type = Some(unsafe { SymbolBundle::new(lib, b"SKF_GetContainerType\0")? });
+        let ct_imp_cert = Some(unsafe { SymbolBundle::new(lib, b"SKF_ImportCertificate\0")? });
+        let ct_exp_cert = Some(unsafe { SymbolBundle::new(lib, b"SKF_ExportCertificate\0")? });
+        let ct_ecc_gen_pair = Some(unsafe { SymbolBundle::new(lib, b"SKF_GenECCKeyPair\0")? });
+        let ct_ecc_imp_pair = Some(unsafe { SymbolBundle::new(lib, b"SKF_ImportECCKeyPair\0")? });
+        let ct_ecc_sign = Some(unsafe { SymbolBundle::new(lib, b"SKF_ECCSignData\0")? });
+        let ct_sk_gen_agreement =
+            Some(unsafe { SymbolBundle::new(lib, b"SKF_GenerateAgreementDataWithECC\0")? });
+        let ct_sk_gen_agreement_and_key =
+            Some(unsafe { SymbolBundle::new(lib, b"SKF_GenerateAgreementDataAndKeyWithECC\0")? });
+        let ct_ecc_exp_pub_key = Some(unsafe { SymbolBundle::new(lib, b"SKF_ExportPublicKey\0")? });
+        let ct_sk_imp = Some(unsafe { SymbolBundle::new(lib, b"SKF_ImportSessionKey\0")? });
+        let ct_sk_exp = Some(unsafe { SymbolBundle::new(lib, b"SKF_ECCExportSessionKey\0")? });
         let holder = Self {
-            container_close,
-            container_get_type,
-            container_imp_cert,
-            container_exp_cert,
+            ct_close,
+            ct_get_type,
+            ct_imp_cert,
+            ct_exp_cert,
+            ct_ecc_gen_pair,
+            ct_ecc_imp_pair,
+            ct_ecc_sign,
+            ct_sk_gen_agreement,
+            ct_sk_gen_agreement_and_key,
+            ct_ecc_exp_pub_key,
+            ct_sk_imp,
+            ct_sk_exp,
         };
         Ok(holder)
     }

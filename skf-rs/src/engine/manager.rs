@@ -54,7 +54,7 @@ impl DeviceManager for ManagerImpl {
             String::from_utf8_lossy(&buff)
         );
         // The spec says string list end with two '\0',but vendor may not do it
-        let list = unsafe { mem::parse_cstr_list_lossy(buff.as_ptr() as *const u8, buff.len()) };
+        let list = unsafe { mem::parse_cstr_list_lossy(buff.as_ptr(), buff.len()) };
         Ok(list)
     }
 
@@ -94,7 +94,7 @@ impl DeviceManager for ManagerImpl {
             event,
             len
         );
-        let name = unsafe { mem::parse_cstr_lossy(buff.as_ptr() as *const u8, len as usize) };
+        let name = unsafe { mem::parse_cstr_lossy(buff.as_ptr(), len as usize) };
         let name = name.unwrap_or("".to_string());
         let event = event as u8;
         match event {
@@ -137,17 +137,62 @@ impl DeviceManager for ManagerImpl {
     fn connect_selected(
         &self,
         selector: fn(Vec<&str>) -> Option<&str>,
-    ) -> Result<Option<Box<dyn SkfDevice>>> {
+    ) -> Result<Box<dyn SkfDevice>> {
         let list = self.enumerate_device_name(true)?;
         if list.is_empty() {
-            Ok(None)
+            Err(Error::NotFound("No device found".to_string()))
         } else {
             let names: Vec<&str> = list.iter().map(|x| &**x).collect();
             if let Some(name) = selector(names) {
                 let dev = self.connect(name)?;
-                return Ok(Some(dev));
+                return Ok(dev);
             }
-            Ok(None)
+            Err(Error::NotFound("No matched device".to_string()))
+        }
+    }
+}
+
+impl PluginEvent {
+    /// The device is plugged in
+    pub const EVENT_PLUGGED_IN: u8 = 1;
+
+    /// The device is unplugged
+    pub const EVENT_UNPLUGGED: u8 = 2;
+
+    pub fn new(device_name: impl Into<String>, event: u8) -> Self {
+        Self {
+            device_name: device_name.into(),
+            event,
+        }
+    }
+
+    pub fn plugged_in(device_name: impl AsRef<str>) -> Self {
+        Self {
+            device_name: device_name.as_ref().to_string(),
+            event: Self::EVENT_PLUGGED_IN,
+        }
+    }
+
+    pub fn unplugged(device_name: impl AsRef<str>) -> Self {
+        Self {
+            device_name: device_name.as_ref().to_string(),
+            event: Self::EVENT_UNPLUGGED,
+        }
+    }
+
+    pub fn is_plugged_in(&self) -> bool {
+        self.event == Self::EVENT_PLUGGED_IN
+    }
+
+    pub fn is_unplugged(&self) -> bool {
+        self.event == Self::EVENT_UNPLUGGED
+    }
+
+    pub fn event_description(&self) -> &'static str {
+        match self.event {
+            Self::EVENT_PLUGGED_IN => "plugged in",
+            Self::EVENT_UNPLUGGED => "unplugged",
+            _ => "unknown",
         }
     }
 }

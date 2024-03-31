@@ -1,12 +1,16 @@
+use crate::engine::crypto::ManagedKeyImpl;
 use crate::engine::symbol::{ModApp, ModContainer};
 use crate::error::{SkfErr, SkfPinVerifyError};
 use crate::helper::{mem, param};
 use crate::{
-    AppSecurity, ContainerManager, Error, FileAttr, FileAttrBuilder, FileManager, PinInfo, SkfApp,
-    SkfContainer, FILE_PERM_NONE,
+    AppSecurity, ContainerManager, ECCEncryptedData, EnvelopedKeyData, Error, FileAttr,
+    FileAttrBuilder, FileManager, ManagedKey, PinInfo, SkfApp, SkfContainer, FILE_PERM_NONE,
 };
 use skf_api::native::error::{SAR_OK, SAR_PIN_INCORRECT};
-use skf_api::native::types::{FileAttribute, BOOL, BYTE, CHAR, FALSE, HANDLE, LPSTR, TRUE, ULONG};
+use skf_api::native::types::{
+    ECCCipherBlob, ECCPublicKeyBlob, ECCSignatureBlob, EnvelopedKeyBlob, FileAttribute, BOOL, BYTE,
+    CHAR, FALSE, HANDLE, LPSTR, TRUE, ULONG,
+};
 use std::fmt::Debug;
 use std::sync::Arc;
 use tracing::{instrument, trace};
@@ -214,7 +218,7 @@ impl FileManager for SkfAppImpl {
             String::from_utf8_lossy(&buff)
         );
         // The spec says string list end with two '\0',but vendor may not do it
-        let list = unsafe { mem::parse_cstr_list_lossy(buff.as_ptr() as *const u8, buff.len()) };
+        let list = unsafe { mem::parse_cstr_list_lossy(buff.as_ptr(), buff.len()) };
         Ok(list)
     }
 
@@ -339,7 +343,7 @@ impl ContainerManager for SkfAppImpl {
             String::from_utf8_lossy(&buff)
         );
         // The spec says string list end with two '\0',but vendor may not do it
-        let list = unsafe { mem::parse_cstr_list_lossy(buff.as_ptr() as *const u8, buff.len()) };
+        let list = unsafe { mem::parse_cstr_list_lossy(buff.as_ptr(), buff.len()) };
         Ok(list)
     }
 
@@ -401,7 +405,7 @@ impl SkfApp for SkfAppImpl {}
 impl From<&FileAttribute> for FileAttr {
     fn from(value: &FileAttribute) -> Self {
         let file_name: String = unsafe {
-            mem::parse_cstr_lossy(value.file_name.as_ptr() as *const u8, value.file_name.len())
+            mem::parse_cstr_lossy(value.file_name.as_ptr(), value.file_name.len())
                 .unwrap_or("".to_string())
         };
         FileAttr {
@@ -456,6 +460,7 @@ impl FileAttrBuilder {
     }
 }
 pub(crate) struct SkfContainerImpl {
+    lib: Arc<libloading::Library>,
     symbols: ModContainer,
     handle: HANDLE,
 }
@@ -467,12 +472,17 @@ impl SkfContainerImpl {
     ///
     /// [lib] - The library handle
     pub fn new(handle: HANDLE, lib: &Arc<libloading::Library>) -> crate::Result<Self> {
+        let lc = Arc::clone(lib);
         let symbols = ModContainer::load_symbols(lib)?;
-        Ok(Self { symbols, handle })
+        Ok(Self {
+            symbols,
+            handle,
+            lib: lc,
+        })
     }
 
     pub fn close(&mut self) -> crate::Result<()> {
-        if let Some(ref func) = self.symbols.container_close {
+        if let Some(ref func) = self.symbols.ct_close {
             let ret = unsafe { func(self.handle) };
             trace!("[SKF_CloseContainer]: ret = {}", ret);
             if ret != SAR_OK {
@@ -495,12 +505,9 @@ impl Drop for SkfContainerImpl {
     }
 }
 impl SkfContainer for SkfContainerImpl {
+    #[instrument]
     fn get_type(&self) -> crate::Result<u32> {
-        let func = self
-            .symbols
-            .container_get_type
-            .as_ref()
-            .expect("Symbol not load");
+        let func = self.symbols.ct_get_type.as_ref().expect("Symbol not load");
         let mut type_value = 0 as ULONG;
 
         let ret = unsafe { func(self.handle, &mut type_value) };
@@ -511,12 +518,9 @@ impl SkfContainer for SkfContainerImpl {
         }
     }
 
+    #[instrument]
     fn import_certificate(&self, signer: bool, data: &[u8]) -> crate::Result<()> {
-        let func = self
-            .symbols
-            .container_imp_cert
-            .as_ref()
-            .expect("Symbol not load");
+        let func = self.symbols.ct_imp_cert.as_ref().expect("Symbol not load");
         let signer = match signer {
             true => TRUE,
             false => FALSE,
@@ -537,12 +541,9 @@ impl SkfContainer for SkfContainerImpl {
         }
     }
 
+    #[instrument]
     fn export_certificate(&self, signer: bool) -> crate::Result<Vec<u8>> {
-        let func = self
-            .symbols
-            .container_exp_cert
-            .as_ref()
-            .expect("Symbol not load");
+        let func = self.symbols.ct_exp_cert.as_ref().expect("Symbol not load");
         let signer = match signer {
             true => TRUE,
             false => FALSE,
@@ -561,5 +562,227 @@ impl SkfContainer for SkfContainerImpl {
         }
         unsafe { buff.set_len(len as usize) };
         Ok(buff)
+    }
+
+    #[instrument]
+    fn ecc_gen_key_pair(&self, alg_id: u32) -> crate::Result<ECCPublicKeyBlob> {
+        let func = self
+            .symbols
+            .ct_ecc_gen_pair
+            .as_ref()
+            .expect("Symbol not load");
+        let mut blob = ECCPublicKeyBlob::default();
+        let ret = unsafe { func(self.handle, alg_id, &mut blob) };
+        trace!("[SKF_GenECCKeyPair]: ret = {}", ret);
+        match ret {
+            SAR_OK => Ok(blob),
+            _ => Err(Error::Skf(SkfErr::of_code(ret))),
+        }
+    }
+
+    #[instrument]
+    fn ecc_import_key_pair(&self, enveloped_key: &EnvelopedKeyData) -> crate::Result<()> {
+        let func = self
+            .symbols
+            .ct_ecc_imp_pair
+            .as_ref()
+            .expect("Symbol not load");
+        let raw_bytes = enveloped_key.blob_bytes();
+        let ret = unsafe { func(self.handle, raw_bytes.as_ptr() as *const EnvelopedKeyBlob) };
+        trace!("[SKF_ImportECCKeyPair]: ret = {}", ret);
+        match ret {
+            SAR_OK => Ok(()),
+            _ => Err(Error::Skf(SkfErr::of_code(ret))),
+        }
+    }
+
+    #[instrument]
+    fn ecc_export_public_key(&self, sign_part: bool) -> crate::Result<Vec<u8>> {
+        let func = self
+            .symbols
+            .ct_ecc_exp_pub_key
+            .as_ref()
+            .expect("Symbol not load");
+        let mut len: ULONG = 0;
+        let ret = unsafe {
+            func(
+                self.handle,
+                sign_part as BOOL,
+                std::ptr::null_mut(),
+                &mut len,
+            )
+        };
+        if ret != SAR_OK {
+            return Err(Error::Skf(SkfErr::of_code(ret)));
+        }
+        trace!("[SKF_EccExportPublicKey]: desired len = {}", len);
+        let mut buff = Vec::<u8>::with_capacity(len as usize);
+        let ret = unsafe {
+            func(
+                self.handle,
+                sign_part as BOOL,
+                buff.as_mut_ptr() as *mut BYTE,
+                &mut len,
+            )
+        };
+        trace!("[SKF_EccExportPublicKey]: ret = {}", ret);
+        if ret != SAR_OK {
+            return Err(Error::Skf(SkfErr::of_code(ret)));
+        }
+        unsafe { buff.set_len(len as usize) };
+        Ok(buff)
+    }
+
+    #[instrument]
+    fn ecc_sign(&self, hash: &[u8]) -> crate::Result<ECCSignatureBlob> {
+        let func = self.symbols.ct_ecc_sign.as_ref().expect("Symbol not load");
+        let mut blob = ECCSignatureBlob::default();
+        let ret = unsafe {
+            func(
+                self.handle,
+                hash.as_ptr() as *const BYTE,
+                hash.len() as ULONG,
+                &mut blob,
+            )
+        };
+        trace!("[SKF_ECCSignData]: ret = {}", ret);
+        match ret {
+            SAR_OK => Ok(blob),
+            _ => Err(Error::Skf(SkfErr::of_code(ret))),
+        }
+    }
+
+    #[instrument]
+    fn sk_gen_agreement_data(
+        &self,
+        alg_id: u32,
+        id: &[u8],
+    ) -> crate::Result<(ECCPublicKeyBlob, Box<dyn ManagedKey>)> {
+        let func = self
+            .symbols
+            .ct_sk_gen_agreement
+            .as_ref()
+            .expect("Symbol not load");
+        let mut handle: HANDLE = std::ptr::null_mut();
+        let mut pub_key = ECCPublicKeyBlob::default();
+        let ret = unsafe {
+            func(
+                self.handle,
+                alg_id as ULONG,
+                &mut pub_key,
+                id.as_ptr() as *const BYTE,
+                id.len() as ULONG,
+                &mut handle,
+            )
+        };
+        trace!("[SKF_GenerateAgreementDataWithECC]: ret = {}", ret);
+        let managed_key = ManagedKeyImpl::try_new(handle, &self.lib)?;
+        match ret {
+            SAR_OK => Ok((pub_key, Box::new(managed_key))),
+            _ => Err(Error::Skf(SkfErr::of_code(ret))),
+        }
+    }
+
+    #[instrument]
+    fn sk_gen_agreement_data_and_key(
+        &self,
+        alg_id: u32,
+        initiator_key: &ECCPublicKeyBlob,
+        initiator_tmp_key: &ECCPublicKeyBlob,
+        initiator_id: &[u8],
+        responder_id: &[u8],
+    ) -> crate::Result<(ECCPublicKeyBlob, Box<dyn ManagedKey>)> {
+        let func = self
+            .symbols
+            .ct_sk_gen_agreement_and_key
+            .as_ref()
+            .expect("Symbol not load");
+        let mut handle: HANDLE = std::ptr::null_mut();
+        let mut pub_key = ECCPublicKeyBlob::default();
+        let ret = unsafe {
+            func(
+                self.handle,
+                alg_id as ULONG,
+                initiator_key,
+                initiator_tmp_key,
+                &mut pub_key,
+                responder_id.as_ptr() as *const BYTE,
+                responder_id.len() as ULONG,
+                initiator_id.as_ptr() as *const BYTE,
+                initiator_id.len() as ULONG,
+                &mut handle,
+            )
+        };
+        trace!("[SKF_GenerateAgreementDataAndKeyWithECC]: ret = {}", ret);
+        let managed_key = ManagedKeyImpl::try_new(handle, &self.lib)?;
+        match ret {
+            SAR_OK => Ok((pub_key, Box::new(managed_key))),
+            _ => Err(Error::Skf(SkfErr::of_code(ret))),
+        }
+    }
+
+    #[instrument]
+    fn sk_import(&self, alg_id: u32, key_data: &[u8]) -> crate::Result<Box<dyn ManagedKey>> {
+        let func = self.symbols.ct_sk_imp.as_ref().expect("Symbol not load");
+        let mut handle: HANDLE = std::ptr::null_mut();
+        let ret = unsafe {
+            func(
+                self.handle,
+                alg_id as ULONG,
+                key_data.as_ptr() as *const BYTE,
+                key_data.len() as ULONG,
+                &mut handle,
+            )
+        };
+        trace!("[SKF_ImportSessionKey]: ret = {}", ret);
+        let managed_key = ManagedKeyImpl::try_new(handle, &self.lib)?;
+        match ret {
+            SAR_OK => Ok(Box::new(managed_key)),
+            _ => Err(Error::Skf(SkfErr::of_code(ret))),
+        }
+    }
+
+    #[instrument]
+    fn sk_export(
+        &self,
+        alg_id: u32,
+        key: &ECCPublicKeyBlob,
+    ) -> crate::Result<(Box<dyn ManagedKey>, ECCEncryptedData)> {
+        let func = self.symbols.ct_sk_exp.as_ref().expect("Symbol not load");
+        let mut handle: HANDLE = std::ptr::null_mut();
+        // guess 256 is big enough
+        let buff_size = ECCCipherBlob::size_of(256);
+        let mut buff: Vec<u8> = vec![0; buff_size];
+
+        let ret = unsafe {
+            func(
+                self.handle,
+                alg_id as ULONG,
+                key as *const ECCPublicKeyBlob,
+                buff.as_mut_ptr() as *mut ECCCipherBlob,
+                &mut handle,
+            )
+        };
+        trace!("[SKF_ECCExportSessionKey]: ret = {}", ret);
+        if ret != SAR_OK {
+            return Err(Error::Skf(SkfErr::of_code(ret)));
+        }
+        let blob = unsafe {
+            let cb = &*(buff.as_ptr() as *const ECCCipherBlob);
+            let mut cipher: Vec<u8> = vec![];
+            if cb.cipher_len > 0 {
+                let len = cb.cipher_len as usize;
+                cipher = vec![0; len];
+                std::ptr::copy(cb.cipher.as_ptr(), cipher.as_mut_ptr(), len);
+            }
+            ECCEncryptedData {
+                ec_x: cb.x_coordinate,
+                ec_y: cb.y_coordinate,
+                hash: cb.hash,
+                cipher,
+            }
+        };
+        let managed_key = ManagedKeyImpl::try_new(handle, &self.lib)?;
+        Ok((Box::new(managed_key), blob))
     }
 }
