@@ -4,11 +4,11 @@ on:
   workflow_dispatch:
     inputs:
       skf-api-version:
-        description: "major/minor/patch or semver or none if not updating derive crate"
+        description: "skf-api: major/minor/patch or semver or none if not updating derive crate"
         required: false
         default: "none"
       skf-rs-version:
-        description: "major/minor/patch or semver or none if not updating derive crate"
+        description: "skf-rs: major/minor/patch or semver or none if not updating derive crate"
         required: false
         default: "none"
 
