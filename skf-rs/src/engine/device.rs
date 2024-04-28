@@ -62,7 +62,7 @@ impl Debug for SkfDeviceImpl {
 }
 
 impl DeviceAuth for SkfDeviceImpl {
-    #[instrument]
+    #[instrument(skip(data))]
     fn device_auth(&self, data: &[u8]) -> Result<()> {
         let func = self.symbols.dev_auth.as_ref().expect("Symbol not load");
         let ret = unsafe {
@@ -79,7 +79,7 @@ impl DeviceAuth for SkfDeviceImpl {
         Ok(())
     }
 
-    #[instrument]
+    #[instrument(skip(key))]
     fn change_device_auth_key(&self, key: &[u8]) -> Result<()> {
         let func = self
             .symbols
@@ -186,7 +186,7 @@ impl DeviceCrypto for SkfDeviceImpl {
         Ok(buffer)
     }
 
-    #[instrument]
+    #[instrument(skip(key))]
     fn set_symmetric_key(&self, alg_id: u32, key: &[u8]) -> Result<Box<dyn ManagedKey>> {
         let func = self
             .symbols
@@ -210,7 +210,7 @@ impl DeviceCrypto for SkfDeviceImpl {
         Ok(Box::new(managed_key))
     }
 
-    #[instrument]
+    #[instrument(skip(key, data))]
     fn ext_ecc_encrypt(&self, key: &ECCPublicKeyBlob, data: &[u8]) -> Result<ECCEncryptedData> {
         let func = self
             .symbols
@@ -251,7 +251,7 @@ impl DeviceCrypto for SkfDeviceImpl {
         Ok(blob)
     }
 
-    #[instrument]
+    #[instrument(skip(key, cipher))]
     fn ext_ecc_decrypt(
         &self,
         key: &ECCPrivateKeyBlob,
@@ -286,7 +286,7 @@ impl DeviceCrypto for SkfDeviceImpl {
         Ok(buff)
     }
 
-    #[instrument]
+    #[instrument(skip(key, data))]
     fn ext_ecc_sign(&self, key: &ECCPrivateKeyBlob, data: &[u8]) -> Result<ECCSignatureBlob> {
         let func = self.symbols.ecc_ext_sign.as_ref().expect("Symbol not load");
 
@@ -308,7 +308,7 @@ impl DeviceCrypto for SkfDeviceImpl {
         Ok(sign)
     }
 
-    #[instrument]
+    #[instrument(skip(key, data, signature))]
     fn ext_ecc_verify(
         &self,
         key: &ECCPublicKeyBlob,
@@ -337,7 +337,7 @@ impl DeviceCrypto for SkfDeviceImpl {
         Ok(())
     }
 
-    #[instrument]
+    #[instrument(skip(key, hash, signature))]
     fn ecc_verify(
         &self,
         key: &ECCPublicKeyBlob,
@@ -362,7 +362,7 @@ impl DeviceCrypto for SkfDeviceImpl {
         Ok(())
     }
 
-    #[instrument(skip(agreement_key))]
+    #[instrument(skip(agreement_key, responder_key, responder_tmp_key, responder_id))]
     fn ecc_gen_session_key(
         &self,
         agreement_key: &dyn ManagedKey,

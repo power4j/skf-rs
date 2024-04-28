@@ -91,7 +91,7 @@ impl AppSecurity for SkfAppImpl {
         }
     }
 
-    #[instrument]
+    #[instrument(skip(pin))]
     fn verify_pin(&self, pin_type: u8, pin: &str) -> crate::Result<()> {
         let func = self.symbols.pin_verify.as_ref().expect("Symbol not load");
         let pin = param::as_cstring("pin", pin)?;
@@ -147,7 +147,7 @@ impl AppSecurity for SkfAppImpl {
         }
     }
 
-    #[instrument]
+    #[instrument(skip(admin_pin, new_pin))]
     fn unblock_pin(&self, admin_pin: &str, new_pin: &str) -> crate::Result<()> {
         let func = self.symbols.pin_unblock.as_ref().expect("Symbol not load");
         let admin_pin = param::as_cstring("admin_pin", admin_pin)?;
@@ -282,7 +282,7 @@ impl FileManager for SkfAppImpl {
         Ok(buff)
     }
 
-    #[instrument]
+    #[instrument(skip(data))]
     fn write_file(&self, name: &str, offset: u32, data: &[u8]) -> crate::Result<()> {
         let func = self.symbols.file_write.as_ref().expect("Symbol not load");
         let name = param::as_cstring("name", name)?;
