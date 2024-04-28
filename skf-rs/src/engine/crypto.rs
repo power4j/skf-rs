@@ -80,7 +80,7 @@ impl SkfBlockCipher for SkfBlockCipherImpl {
         Ok(())
     }
 
-    #[instrument(skip(key))]
+    #[instrument(skip(key, data))]
     fn encrypt(&self, key: &dyn ManagedKey, data: &[u8], buffer_size: usize) -> Result<Vec<u8>> {
         let func = self.symbols.encrypt.as_ref().expect("Symbol not load");
         let mut len = buffer_size as ULONG;
@@ -103,7 +103,7 @@ impl SkfBlockCipher for SkfBlockCipherImpl {
         Ok(buffer)
     }
 
-    #[instrument(skip(key))]
+    #[instrument(skip(key, data))]
     fn encrypt_update(
         &self,
         key: &dyn ManagedKey,
@@ -166,7 +166,7 @@ impl SkfBlockCipher for SkfBlockCipherImpl {
         Ok(())
     }
 
-    #[instrument(skip(key))]
+    #[instrument(skip(key, data))]
     fn decrypt(&self, key: &dyn ManagedKey, data: &[u8], buffer_size: usize) -> Result<Vec<u8>> {
         let func = self.symbols.decrypt.as_ref().expect("Symbol not load");
         let mut len = buffer_size as ULONG;
@@ -189,7 +189,7 @@ impl SkfBlockCipher for SkfBlockCipherImpl {
         Ok(buffer)
     }
 
-    #[instrument(skip(key))]
+    #[instrument(skip(key, data))]
     fn decrypt_update(
         &self,
         key: &dyn ManagedKey,
