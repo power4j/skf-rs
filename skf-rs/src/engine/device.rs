@@ -401,6 +401,9 @@ impl AppManager for SkfDeviceImpl {
             return Err(Error::Skf(SkfErr::of_code(ret)));
         }
         trace!("[SKF_EnumApplication]: desired len = {}", len);
+        if len == 0 {
+            return Ok(vec![]);
+        }
         let mut buff = Vec::<CHAR>::with_capacity(len as usize);
         let ret = unsafe { func(self.handle, buff.as_mut_ptr(), &mut len) };
         trace!("[SKF_EnumApplication]: ret = {}", ret);

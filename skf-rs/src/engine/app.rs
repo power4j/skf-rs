@@ -206,6 +206,9 @@ impl FileManager for SkfAppImpl {
             return Err(Error::Skf(SkfErr::of_code(ret)));
         }
         trace!("[SKF_EnumFiles]: desired len = {}", len);
+        if len == 0 {
+            return Ok(vec![]);
+        }
         let mut buff = Vec::<CHAR>::with_capacity(len as usize);
         let ret = unsafe { func(self.handle, buff.as_mut_ptr(), &mut len) };
         trace!("[SKF_EnumFiles]: ret = {}", ret);
@@ -331,6 +334,9 @@ impl ContainerManager for SkfAppImpl {
             return Err(Error::Skf(SkfErr::of_code(ret)));
         }
         trace!("[SKF_EnumContainer]: desired len = {}", len);
+        if len == 0 {
+            return Ok(vec![]);
+        }
         let mut buff = Vec::<CHAR>::with_capacity(len as usize);
         let ret = unsafe { func(self.handle, buff.as_mut_ptr(), &mut len) };
         trace!("[SKF_EnumContainer]: ret = {}", ret);

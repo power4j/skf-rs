@@ -42,6 +42,9 @@ impl DeviceManager for ManagerImpl {
             return Err(Error::Skf(SkfErr::of_code(ret)));
         }
         trace!("[SKF_EnumDev]: desired len = {}", len);
+        if len == 0 {
+            return Ok(vec![]);
+        }
         let mut buff = Vec::<CHAR>::with_capacity(len as usize);
         let ret = unsafe { func(presented_only as BOOL, buff.as_mut_ptr(), &mut len) };
         trace!("[SKF_EnumDev]: ret = {}", ret);
