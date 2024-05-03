@@ -12,30 +12,82 @@ on:
         required: false
         default: "none"
 
+#permissions:                    # Global permissions configuration starts here
+#  contents: read                # 'read' access to repository contents
+#  pull-requests: write          # 'write' access to pull requests
+
 jobs:
   publish:
     runs-on: ubuntu-latest
+    permissions:                # Job-level permissions configuration starts here
+      contents: write           # 'write' access to repository contents
+      pull-requests: write      # 'write' access to pull requests
     steps:
       - uses: actions/checkout@v2
+        with:
+          persist-credentials: false # otherwise, the token used is the GITHUB_TOKEN, instead of your personal token
+          fetch-depth: 0             # otherwise, you will fail to push refs to dest repo
+          #ref: ${{ github.head_ref }}
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
       - name: Set git credentials
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
-      - name: Publish crates
-        uses: kaleidawave/crates-release-gh-action@main
-        id: release
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
         with:
-          version: |
-            {
-              "skf-api": "${{ github.event.inputs.skf-api-version }}", 
-              "skf-rs": "${{ github.event.inputs.skf-rs-version }}" 
-            }
-          crates-token: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-      - name: Push updated Cargo.toml
+          toolchain: stable
+          override: true
+
+      - name: Install tools
         run: |
-          echo '${{ steps.release.outputs.new-versions }}' | jq -r '.[]' | while read -r update; do
-            git tag "release/$update"
-          done
+          cargo install -q cargo-get cargo-edit
+
+      - name: "[skf-api] Bump"
+        if: "${{ github.event.inputs.skf-api-version == 'major' || github.event.inputs.skf-api-version == 'minor' || github.event.inputs.skf-api-version == 'patch' }}"
+        #working-directory: ${{ github.workspace }}
+        run: |
+          cargo set-version --bump ${{ github.event.inputs.skf-api-version}} -p skf-api
+          CRATE_TAG="$(cd skf-api && cargo get package.name)-$(cd skf-api && cargo get package.version --pretty)"
           git add .
-          git commit -m "Release: ${{ steps.release.outputs.new-versions-description }}"
-          git push --tags origin main
+          git commit -am "Release: $CRATE_TAG"
+          git tag "$CRATE_TAG"
+
+      - name: "[skf-api] Push"
+        uses: ad-m/github-push-action@master
+        if: "${{ github.event.inputs.skf-api-version == 'major' || github.event.inputs.skf-api-version == 'minor' || github.event.inputs.skf-api-version == 'patch' }}"
+        with:
+          branch: ${{ github.ref }}
+          tags: true
+
+      - name: "[skf-api] Publish"
+        if: "${{ github.event.inputs.skf-api-version == 'major' || github.event.inputs.skf-api-version == 'minor' || github.event.inputs.skf-api-version == 'patch' }}"
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN  }}
+        run: cargo publish --no-verify -p skf-api
+
+
+      - name: "[skf-rs] Bump"
+        if: "${{ github.event.inputs.skf-rs-version == 'major' || github.event.inputs.skf-rs-version == 'minor' || github.event.inputs.skf-rs-version == 'patch' }}"
+        #working-directory: ${{ github.workspace }}
+        shell: bash
+        run: |
+          cargo set-version --bump ${{ github.event.inputs.skf-rs-version}} -p skf-rs
+          CRATE_TAG="$(cd skf-rs && cargo get package.name)-$(cd skf-rs && cargo get package.version --pretty)"
+          git add .
+          git commit -am "Release: $CRATE_TAG"
+          git tag "$CRATE_TAG"
+
+      - name: "[skf-rs] Push"
+        uses: ad-m/github-push-action@master
+        if: "${{ github.event.inputs.skf-rs-version == 'major' || github.event.inputs.skf-rs-version == 'minor' || github.event.inputs.skf-rs-version == 'patch' }}"
+        with:
+          branch: ${{ github.ref }}
+          tags: true
+
+      - name: "[skf-rs] Publish"
+        if: "${{ github.event.inputs.skf-rs-version == 'major' || github.event.inputs.skf-rs-version == 'minor' || github.event.inputs.skf-rs-version == 'patch' }}"
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN  }}
+        run: cargo publish --no-verify -p skf-rs

@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main,develop]
+    branches: [main,master,develop,dev]
   pull_request:
-    branches: [main,develop]
+    branches: [main,master,develop,dev]
 
 env:
   CARGO_TERM_COLOR: always
@@ -19,7 +19,8 @@ jobs:
   validity:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
       - uses: actions/cache@v3
         with:
           path: ${{ env.CACHE_PATHS }}
@@ -31,7 +32,7 @@ jobs:
   formating:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Check Rust formatting with rustfmt
         run: cargo fmt --all --check
 
@@ -39,7 +40,7 @@ jobs:
     needs: validity
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/cache@v3
         with:
           path: ${{ env.CACHE_PATHS }}
@@ -51,7 +52,7 @@ jobs:
     needs: validity
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/cache@v3
         with:
           path: ${{ env.CACHE_PATHS }}
@@ -62,11 +63,9 @@ jobs:
   publish-ability:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Check that it will publish to crates
         run: |
-          cargo metadata --offline --format-version 1 --no-deps | jq -r ".workspace_members[]" | while read -r _n _v pathInfo ; do
-            cd ${pathInfo:13:-1}
-            cargo publish --no-verify --dry-run
-          done
+          cargo publish --no-verify --dry-run -p skf-api
+          cargo publish --no-verify --dry-run -p skf-rs
         shell: bash
