@@ -19,6 +19,7 @@ pub(crate) struct SkfAppImpl {
     lib: Arc<libloading::Library>,
     symbols: ModApp,
     handle: HANDLE,
+    name: String,
 }
 
 impl SkfAppImpl {
@@ -27,13 +28,14 @@ impl SkfAppImpl {
     /// [handle] - The application handle
     ///
     /// [lib] - The library handle
-    pub fn new(handle: HANDLE, lib: &Arc<libloading::Library>) -> crate::Result<Self> {
+    pub fn new(handle: HANDLE, name: &str, lib: &Arc<libloading::Library>) -> crate::Result<Self> {
         let lc = Arc::clone(lib);
         let symbols = ModApp::load_symbols(lib)?;
         Ok(Self {
             lib: lc,
             symbols,
             handle,
+            name: name.to_string(),
         })
     }
 
@@ -52,7 +54,7 @@ impl SkfAppImpl {
 
 impl Debug for SkfAppImpl {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "SkfAppImpl")
+        write!(f, "SkfAppImpl({})", &self.name)
     }
 }
 impl Drop for SkfAppImpl {
@@ -366,7 +368,7 @@ impl ContainerManager for SkfAppImpl {
         let ret = unsafe { func(self.handle, container_name.as_ptr() as LPSTR, &mut handle) };
         trace!("[SKF_CreateContainer]: ret = {}", ret);
         match ret {
-            SAR_OK => Ok(Box::new(SkfContainerImpl::new(handle, &self.lib)?)),
+            SAR_OK => Ok(Box::new(SkfContainerImpl::new(handle, name, &self.lib)?)),
             _ => Err(Error::Skf(SkfErr::of_code(ret))),
         }
     }
@@ -384,7 +386,7 @@ impl ContainerManager for SkfAppImpl {
         let ret = unsafe { func(self.handle, container_name.as_ptr() as LPSTR, &mut handle) };
         trace!("[SKF_OpenContainer]: ret = {}", ret);
         match ret {
-            SAR_OK => Ok(Box::new(SkfContainerImpl::new(handle, &self.lib)?)),
+            SAR_OK => Ok(Box::new(SkfContainerImpl::new(handle, name, &self.lib)?)),
             _ => Err(Error::Skf(SkfErr::of_code(ret))),
         }
     }
@@ -407,7 +409,11 @@ impl ContainerManager for SkfAppImpl {
     }
 }
 
-impl SkfApp for SkfAppImpl {}
+impl SkfApp for SkfAppImpl {
+    fn name(&self) -> &str {
+        &self.name
+    }
+}
 impl From<&FileAttribute> for FileAttr {
     fn from(value: &FileAttribute) -> Self {
         let file_name: String = unsafe {
@@ -469,6 +475,7 @@ pub(crate) struct SkfContainerImpl {
     lib: Arc<libloading::Library>,
     symbols: ModContainer,
     handle: HANDLE,
+    name: String,
 }
 
 impl SkfContainerImpl {
@@ -477,13 +484,14 @@ impl SkfContainerImpl {
     /// [handle] - The application handle
     ///
     /// [lib] - The library handle
-    pub fn new(handle: HANDLE, lib: &Arc<libloading::Library>) -> crate::Result<Self> {
+    pub fn new(handle: HANDLE, name: &str, lib: &Arc<libloading::Library>) -> crate::Result<Self> {
         let lc = Arc::clone(lib);
         let symbols = ModContainer::load_symbols(lib)?;
         Ok(Self {
             symbols,
             handle,
             lib: lc,
+            name: name.to_string(),
         })
     }
 
@@ -502,7 +510,7 @@ impl SkfContainerImpl {
 
 impl Debug for SkfContainerImpl {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "SkfContainerImpl")
+        write!(f, "SkfContainerImpl({})", &self.name)
     }
 }
 impl Drop for SkfContainerImpl {
@@ -511,6 +519,10 @@ impl Drop for SkfContainerImpl {
     }
 }
 impl SkfContainer for SkfContainerImpl {
+    fn name(&self) -> &str {
+        &self.name
+    }
+
     #[instrument]
     fn get_type(&self) -> crate::Result<u32> {
         let func = self.symbols.ct_get_type.as_ref().expect("Symbol not load");
