@@ -133,7 +133,7 @@ impl DeviceManager for ManagerImpl {
         if ret != SAR_OK {
             return Err(Error::Skf(SkfErr::of_code(ret)));
         }
-        let dev = SkfDeviceImpl::new(handle, device_name,&self.lib)?;
+        let dev = SkfDeviceImpl::new(handle, device_name, &self.lib)?;
         Ok(Box::new(dev))
     }
 
