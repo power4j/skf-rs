@@ -2,7 +2,7 @@
 //! Helper functions for use this library easily
 //!
 use crate::{AppAttr, Result, SkfApp, SkfContainer, SkfDevice};
-use tracing::{trace, warn};
+use tracing::warn;
 
 /// Open or create application by it name
 ///
@@ -74,21 +74,27 @@ pub struct SecureApp {
 }
 
 impl SecureApp {
+    fn app(&self) -> &Box<dyn SkfApp> {
+        &self.app
+    }
+}
+
+impl SecureApp {
     pub fn new(app: Box<dyn SkfApp>) -> Self {
-        Self { app }
+        Self::from(app)
     }
 }
 
 impl Drop for SecureApp {
     fn drop(&mut self) {
-        if let Some(err) = self.app.clear_secure_state() {
+        if let Err(err) = self.app.clear_secure_state() {
             warn!("Clear secure state failed: err = {}", err);
         }
     }
 }
 
-impl AsRef<dyn SkfApp> for SecureApp {
-    fn as_ref(&self) -> &dyn SkfApp {
-        self.app.as_ref()
+impl From<Box<dyn SkfApp>> for SecureApp {
+    fn from(app: Box<dyn SkfApp>) -> Self {
+        Self { app }
     }
 }
