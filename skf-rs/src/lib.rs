@@ -322,6 +322,9 @@ pub trait DeviceAuth {
 pub trait SkfDevice: DeviceCtl + DeviceAuth + AppManager + DeviceCrypto {
     /// Block cipher service
     fn block_cipher(&self) -> Result<Box<dyn SkfBlockCipher + Send + Sync>>;
+
+    /// The name when it is opened
+    fn name(&self) -> &str;
 }
 
 /// PIN type: Admin
@@ -481,7 +484,10 @@ pub trait ContainerManager {
 /// Represents an Application instance
 /// ## Close
 /// Application instance is closed when `Drop`
-pub trait SkfApp: AppSecurity + FileManager + ContainerManager {}
+pub trait SkfApp: AppSecurity + FileManager + ContainerManager {
+    /// The name when it is opened
+    fn name(&self) -> &str;
+}
 
 const CONTAINER_TYPE_UNKNOWN: u32 = 0;
 const CONTAINER_TYPE_RSA: u32 = 0;
@@ -493,6 +499,9 @@ const CONTAINER_TYPE_ECC: u32 = 0;
 /// ## Owner object lifetime requirement
 /// If owner object([SkfApp]) is dropped, the `SkfContainer` object will be invalid
 pub trait SkfContainer {
+    /// The name when it is opened
+    fn name(&self) -> &str;
+
     /// Get container type,the value of type can be:
     /// - [CONTAINER_TYPE_UNKNOWN]
     /// - [CONTAINER_TYPE_RSA]

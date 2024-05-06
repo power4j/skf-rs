@@ -126,14 +126,14 @@ impl DeviceManager for ManagerImpl {
     #[instrument]
     fn connect(&self, device_name: &str) -> Result<Box<dyn SkfDevice>> {
         let func = self.symbols.connect_dev.as_ref().expect("Symbol not load");
-        let device_name = param::as_cstring("device_name", device_name)?;
+        let c_name = param::as_cstring("device_name", device_name)?;
         let mut handle: HANDLE = std::ptr::null_mut();
-        let ret = unsafe { func(device_name.as_ptr() as *const CHAR, &mut handle) };
+        let ret = unsafe { func(c_name.as_ptr() as *const CHAR, &mut handle) };
         trace!("[SKF_ConnectDev]: ret = {}", ret);
         if ret != SAR_OK {
             return Err(Error::Skf(SkfErr::of_code(ret)));
         }
-        let dev = SkfDeviceImpl::new(handle, &self.lib)?;
+        let dev = SkfDeviceImpl::new(handle, device_name,&self.lib)?;
         Ok(Box::new(dev))
     }
 

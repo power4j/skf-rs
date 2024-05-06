@@ -23,6 +23,7 @@ pub(crate) struct SkfDeviceImpl {
     lib: Arc<libloading::Library>,
     symbols: ModDev,
     handle: HANDLE,
+    name: String,
 }
 
 impl SkfDeviceImpl {
@@ -31,13 +32,14 @@ impl SkfDeviceImpl {
     /// [handle] - Native handle
     ///
     /// [lib] - The library handle
-    pub fn new(handle: HANDLE, lib: &Arc<libloading::Library>) -> Result<Self> {
+    pub fn new(handle: HANDLE, name: &str, lib: &Arc<libloading::Library>) -> Result<Self> {
         let lc = Arc::clone(lib);
         let symbols = ModDev::load_symbols(lib)?;
         Ok(Self {
             lib: lc,
             symbols,
             handle,
+            name: name.to_string(),
         })
     }
 
@@ -57,7 +59,7 @@ impl SkfDeviceImpl {
 
 impl Debug for SkfDeviceImpl {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "SkfDeviceImpl")
+        write!(f, "SkfDeviceImpl({})", &self.name)
     }
 }
 
@@ -423,14 +425,14 @@ impl AppManager for SkfDeviceImpl {
     #[instrument]
     fn create_app(&self, name: &str, attr: &AppAttr) -> Result<Box<dyn SkfApp>> {
         let func = self.symbols.app_create.as_ref().expect("Symbol not load");
-        let name = param::as_cstring("name", name)?;
+        let c_name = param::as_cstring("name", name)?;
         let admin_pin = param::as_cstring("AppAttr.admin_pin", &attr.admin_pin)?;
         let user_pin = param::as_cstring("AppAttr.user_pin", &attr.user_pin)?;
         let mut handle: HANDLE = std::ptr::null_mut();
         let ret = unsafe {
             func(
                 self.handle,
-                name.as_ptr() as *const CHAR,
+                c_name.as_ptr() as *const CHAR,
                 admin_pin.as_ptr() as *const CHAR,
                 attr.admin_pin_retry_count as DWORD,
                 user_pin.as_ptr() as *const CHAR,
@@ -443,21 +445,21 @@ impl AppManager for SkfDeviceImpl {
         if ret != SAR_OK {
             return Err(Error::Skf(SkfErr::of_code(ret)));
         }
-        let app = SkfAppImpl::new(handle, &self.lib)?;
+        let app = SkfAppImpl::new(handle, name, &self.lib)?;
         Ok(Box::new(app))
     }
 
     #[instrument]
     fn open_app(&self, name: &str) -> Result<Box<dyn SkfApp>> {
         let func = self.symbols.app_open.as_ref().expect("Symbol not load");
-        let name = param::as_cstring("name", name)?;
+        let c_name = param::as_cstring("name", name)?;
         let mut handle: HANDLE = std::ptr::null_mut();
-        let ret = unsafe { func(self.handle, name.as_ptr() as LPSTR, &mut handle) };
+        let ret = unsafe { func(self.handle, c_name.as_ptr() as LPSTR, &mut handle) };
         trace!("[SKF_OpenApplication]: ret = {}", ret);
         if ret != SAR_OK {
             return Err(Error::Skf(SkfErr::of_code(ret)));
         }
-        let app = SkfAppImpl::new(handle, &self.lib)?;
+        let app = SkfAppImpl::new(handle, name, &self.lib)?;
         Ok(Box::new(app))
     }
 
@@ -478,6 +480,10 @@ impl SkfDevice for SkfDeviceImpl {
     fn block_cipher(&self) -> Result<Box<dyn SkfBlockCipher + Send + Sync>> {
         let crypto = crypto::SkfBlockCipherImpl::new(&self.lib)?;
         Ok(Box::new(crypto))
+    }
+
+    fn name(&self) -> &str {
+        &self.name
     }
 }
 impl Drop for SkfDeviceImpl {
