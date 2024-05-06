@@ -2,6 +2,7 @@
 //! Helper functions for use this library easily
 //!
 use crate::{AppAttr, Result, SkfApp, SkfContainer, SkfDevice};
+use tracing::warn;
 
 /// Open or create application by it name
 ///
@@ -65,4 +66,35 @@ pub fn recreate_container(app: &dyn SkfApp, name: &str) -> Result<Box<dyn SkfCon
         app.delete_container(name)?;
     }
     app.create_container(name)
+}
+
+/// A wrapper for SkfApp, clean security state on drop
+pub struct SecureApp {
+    app: Box<dyn SkfApp>,
+}
+
+impl SecureApp {
+    fn app(&self) -> &Box<dyn SkfApp> {
+        &self.app
+    }
+}
+
+impl SecureApp {
+    pub fn new(app: Box<dyn SkfApp>) -> Self {
+        Self::from(app)
+    }
+}
+
+impl Drop for SecureApp {
+    fn drop(&mut self) {
+        if let Err(err) = self.app.clear_secure_state() {
+            warn!("Clear secure state failed: err = {}", err);
+        }
+    }
+}
+
+impl From<Box<dyn SkfApp>> for SecureApp {
+    fn from(app: Box<dyn SkfApp>) -> Self {
+        Self { app }
+    }
 }
