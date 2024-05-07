@@ -74,7 +74,7 @@ pub struct SecureApp {
 }
 
 impl SecureApp {
-    fn app(&self) -> &Box<dyn SkfApp> {
+    pub fn app(&self) -> &Box<dyn SkfApp> {
         &self.app
     }
 }
