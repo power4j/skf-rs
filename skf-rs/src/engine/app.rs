@@ -63,7 +63,7 @@ impl Drop for SkfAppImpl {
     }
 }
 impl AppSecurity for SkfAppImpl {
-    #[instrument]
+    #[instrument(skip(old_pin, new_pin))]
     fn change_pin(&self, pin_type: u8, old_pin: &str, new_pin: &str) -> crate::Result<()> {
         let func = self.symbols.pin_change.as_ref().expect("Symbol not load");
         let old_pin = param::as_cstring("old_pin", old_pin)?;
