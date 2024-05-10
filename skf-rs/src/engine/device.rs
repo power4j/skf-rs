@@ -422,7 +422,7 @@ impl AppManager for SkfDeviceImpl {
         Ok(list)
     }
 
-    #[instrument]
+    #[instrument(skip(attr))]
     fn create_app(&self, name: &str, attr: &AppAttr) -> Result<Box<dyn SkfApp>> {
         let func = self.symbols.app_create.as_ref().expect("Symbol not load");
         let c_name = param::as_cstring("name", name)?;
