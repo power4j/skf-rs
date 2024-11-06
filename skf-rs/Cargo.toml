@@ -19,7 +19,7 @@ categories = ["hardware-support"]
 [dependencies]
 skf-api= { path = "../skf-api", version = "0.5.0" }
 tracing = "0.1"
-thiserror = "1.0"
+thiserror = "2.0"
 anyhow = "1.0"
 libloading = "0.8"
 
