@@ -1,6 +1,18 @@
 use libloading::{Library, Symbol};
-
 use std::sync::Arc;
+
+// 定义宏，根据平台选择合适的调用约定
+#[macro_export]
+macro_rules! define_extern_fn_type {
+    ($vis:vis $name:ident = fn($($arg:ty),*) -> $ret:ty) => {
+        #[cfg(all(target_os = "windows", target_arch = "x86"))]
+        $vis type $name = $crate::engine::symbol::SymbolBundle<unsafe extern "stdcall" fn($($arg),*) -> $ret>;
+        
+        #[cfg(not(all(target_os = "windows", target_arch = "x86")))]
+        $vis type $name = $crate::engine::symbol::SymbolBundle<unsafe extern "C" fn($($arg),*) -> $ret>;
+    };
+}
+
 
 /// Symbol bundle with library pointer
 pub struct SymbolBundle<T: 'static> {
@@ -33,279 +45,95 @@ impl<T> std::ops::Deref for SymbolBundle<T> {
 
 #[allow(non_camel_case_types)]
 pub(crate) mod device_fn {
-    use super::SymbolBundle;
+    use crate::define_extern_fn_type;
     use skf_api::native::types::{DeviceInfo, BOOL, BYTE, CHAR, DWORD, HANDLE, LPSTR, ULONG};
 
-    pub(super) type SKF_WaitForDevEvent =
-        SymbolBundle<unsafe extern "C" fn(*mut CHAR, *mut ULONG, *mut ULONG) -> ULONG>;
-
-    pub(super) type SKF_CancelWaitForDevEvent = SymbolBundle<unsafe extern "C" fn() -> ULONG>;
-
-    pub(super) type SKF_EnumDev =
-        SymbolBundle<unsafe extern "C" fn(BOOL, *mut CHAR, *mut ULONG) -> ULONG>;
-
-    pub(super) type SKF_GetDevState =
-        SymbolBundle<unsafe extern "C" fn(*const CHAR, *mut ULONG) -> ULONG>;
-
-    pub(super) type SKF_ConnectDev =
-        SymbolBundle<unsafe extern "C" fn(*const CHAR, *mut HANDLE) -> ULONG>;
-
-    pub(super) type SKF_DisConnectDev = SymbolBundle<unsafe extern "C" fn(HANDLE) -> ULONG>;
-
-    pub(super) type SKF_SetLabel = SymbolBundle<unsafe extern "C" fn(HANDLE, *const CHAR) -> ULONG>;
-
-    pub(super) type SKF_GetDevInfo =
-        SymbolBundle<unsafe extern "C" fn(HANDLE, *mut DeviceInfo) -> ULONG>;
-
-    pub(super) type SKF_LockDev = SymbolBundle<unsafe extern "C" fn(HANDLE, ULONG) -> ULONG>;
-
-    pub(super) type SKF_UnlockDev = SymbolBundle<unsafe extern "C" fn(HANDLE) -> ULONG>;
-
-    pub(super) type SKF_Transmit = SymbolBundle<
-        unsafe extern "C" fn(HANDLE, *const BYTE, ULONG, *mut BYTE, *mut ULONG) -> ULONG,
-    >;
-
-    pub(super) type SKF_ChangeDevAuthKey =
-        SymbolBundle<unsafe extern "C" fn(HANDLE, *const BYTE, ULONG) -> ULONG>;
-
-    pub(super) type SKF_DevAuth =
-        SymbolBundle<unsafe extern "C" fn(HANDLE, *const BYTE, ULONG) -> ULONG>;
-
-    pub(super) type SKF_CreateApplication = SymbolBundle<
-        unsafe extern "C" fn(
-            HANDLE,
-            LPSTR,
-            LPSTR,
-            DWORD,
-            LPSTR,
-            DWORD,
-            DWORD,
-            *mut HANDLE,
-        ) -> ULONG,
-    >;
-
-    pub(super) type SKF_OpenApplication =
-        SymbolBundle<unsafe extern "C" fn(HANDLE, LPSTR, *mut HANDLE) -> ULONG>;
-
-    pub(super) type SKF_EnumApplication =
-        SymbolBundle<unsafe extern "C" fn(HANDLE, *mut CHAR, *mut ULONG) -> ULONG>;
-    pub(super) type SKF_DeleteApplication =
-        SymbolBundle<unsafe extern "C" fn(HANDLE, LPSTR) -> ULONG>;
+    define_extern_fn_type!(pub(super) SKF_WaitForDevEvent = fn(*mut CHAR, *mut ULONG, *mut ULONG) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_CancelWaitForDevEvent = fn() -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_EnumDev = fn(BOOL, *mut CHAR, *mut ULONG) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_GetDevState = fn(*const CHAR, *mut ULONG) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_ConnectDev = fn(*const CHAR, *mut HANDLE) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_DisConnectDev = fn(HANDLE) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_SetLabel = fn(HANDLE, *const CHAR) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_GetDevInfo = fn(HANDLE, *mut DeviceInfo) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_LockDev = fn(HANDLE, ULONG) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_UnlockDev = fn(HANDLE) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_Transmit = fn(HANDLE, *const BYTE, ULONG, *mut BYTE, *mut ULONG) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_ChangeDevAuthKey = fn(HANDLE, *const BYTE, ULONG) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_DevAuth = fn(HANDLE, *const BYTE, ULONG) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_CreateApplication = fn(HANDLE, LPSTR, LPSTR, DWORD, LPSTR, DWORD, DWORD, *mut HANDLE) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_OpenApplication = fn(HANDLE, LPSTR, *mut HANDLE) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_DeleteApplication = fn(HANDLE, LPSTR) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_EnumApplication = fn(HANDLE, *mut CHAR, *mut ULONG) -> ULONG);
 }
+
 #[allow(non_camel_case_types)]
 pub(crate) mod app_fn {
-    use crate::engine::symbol::SymbolBundle;
+    use crate::define_extern_fn_type;
     use skf_api::native::types::{FileAttribute, BOOL, BYTE, CHAR, HANDLE, LPSTR, ULONG};
 
-    pub(super) type SKF_CloseApplication = SymbolBundle<unsafe extern "C" fn(HANDLE) -> ULONG>;
-    pub(super) type SKF_CreateFile =
-        SymbolBundle<unsafe extern "C" fn(HANDLE, LPSTR, ULONG, ULONG, ULONG) -> ULONG>;
-    pub(super) type SKF_DeleteFile = SymbolBundle<unsafe extern "C" fn(HANDLE, LPSTR) -> ULONG>;
-    pub(super) type SKF_EnumFiles =
-        SymbolBundle<unsafe extern "C" fn(HANDLE, *mut CHAR, *mut ULONG) -> ULONG>;
-    pub(super) type SKF_GetFileInfo =
-        SymbolBundle<unsafe extern "C" fn(HANDLE, LPSTR, *mut FileAttribute) -> ULONG>;
-    pub(super) type SKF_ReadFile = SymbolBundle<
-        unsafe extern "C" fn(HANDLE, LPSTR, ULONG, ULONG, *mut BYTE, *mut ULONG) -> ULONG,
-    >;
-    pub(super) type SKF_WriteFile =
-        SymbolBundle<unsafe extern "C" fn(HANDLE, LPSTR, ULONG, *const BYTE, ULONG) -> ULONG>;
-
-    pub(super) type SKF_ChangePIN =
-        SymbolBundle<unsafe extern "C" fn(HANDLE, ULONG, LPSTR, LPSTR, *mut ULONG) -> ULONG>;
-
-    pub(super) type SKF_GetPINInfo = SymbolBundle<
-        unsafe extern "C" fn(HANDLE, ULONG, *mut ULONG, *mut ULONG, *mut BOOL) -> ULONG,
-    >;
-
-    pub(super) type SKF_VerifyPIN =
-        SymbolBundle<unsafe extern "C" fn(HANDLE, ULONG, LPSTR, *mut ULONG) -> ULONG>;
-
-    pub(super) type SKF_UnblockPIN =
-        SymbolBundle<unsafe extern "C" fn(HANDLE, LPSTR, LPSTR, *mut ULONG) -> ULONG>;
-
-    pub(super) type SKF_ClearSecureState = SymbolBundle<unsafe extern "C" fn(HANDLE) -> ULONG>;
+    define_extern_fn_type!(pub(super) SKF_CloseApplication = fn(HANDLE) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_ClearSecureState = fn(HANDLE) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_EnumFiles = fn(HANDLE, *mut CHAR, *mut ULONG) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_CreateFile = fn(HANDLE, LPSTR, ULONG, ULONG, ULONG) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_DeleteFile = fn(HANDLE, LPSTR) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_GetFileInfo = fn(HANDLE, LPSTR, *mut FileAttribute) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_ReadFile = fn(HANDLE, LPSTR, ULONG, ULONG, *mut BYTE, *mut ULONG) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_WriteFile = fn(HANDLE, LPSTR, ULONG, *const BYTE, ULONG) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_ChangePIN = fn(HANDLE, ULONG, LPSTR, LPSTR, *mut ULONG) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_GetPINInfo = fn(HANDLE, ULONG, *mut ULONG, *mut ULONG, *mut BOOL) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_VerifyPIN = fn(HANDLE, ULONG, LPSTR, *mut ULONG) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_UnblockPIN = fn(HANDLE, LPSTR, LPSTR, *mut ULONG) -> ULONG);
 }
 
 #[allow(non_camel_case_types)]
 pub(crate) mod container_fn {
-    use crate::engine::symbol::SymbolBundle;
+    use crate::define_extern_fn_type;
     use skf_api::native::types::{BOOL, BYTE, CHAR, HANDLE, LPSTR, ULONG};
 
-    pub(super) type SKF_CreateContainer =
-        SymbolBundle<unsafe extern "C" fn(HANDLE, LPSTR, *mut HANDLE) -> ULONG>;
-    pub(super) type SKF_DeleteContainer =
-        SymbolBundle<unsafe extern "C" fn(HANDLE, LPSTR) -> ULONG>;
-    pub(super) type SKF_OpenContainer =
-        SymbolBundle<unsafe extern "C" fn(HANDLE, LPSTR, *mut HANDLE) -> ULONG>;
-    pub(super) type SKF_EnumContainer =
-        SymbolBundle<unsafe extern "C" fn(HANDLE, *mut CHAR, *mut ULONG) -> ULONG>;
-    pub(super) type SKF_CloseContainer = SymbolBundle<unsafe extern "C" fn(HANDLE) -> ULONG>;
-    pub(super) type SKF_GetContainerType =
-        SymbolBundle<unsafe extern "C" fn(HANDLE, *mut ULONG) -> ULONG>;
-    pub(super) type SKF_ImportCertificate =
-        SymbolBundle<unsafe extern "C" fn(HANDLE, BOOL, *const BYTE, ULONG) -> ULONG>;
-    pub(super) type SKF_ExportCertificate =
-        SymbolBundle<unsafe extern "C" fn(HANDLE, BOOL, *mut BYTE, *mut ULONG) -> ULONG>;
+    define_extern_fn_type!(pub(super) SKF_CreateContainer = fn(HANDLE, LPSTR, *mut HANDLE) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_DeleteContainer = fn(HANDLE, LPSTR) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_OpenContainer = fn(HANDLE, LPSTR, *mut HANDLE) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_EnumContainer = fn(HANDLE, *mut CHAR, *mut ULONG) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_CloseContainer = fn(HANDLE) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_GetContainerType = fn(HANDLE, *mut ULONG) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_ImportCertificate = fn(HANDLE, BOOL, *const BYTE, ULONG) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_ExportCertificate = fn(HANDLE, BOOL, *mut BYTE, *mut ULONG) -> ULONG);
 }
 
 #[allow(non_camel_case_types)]
 pub(crate) mod crypto_fn {
-    use crate::engine::symbol::SymbolBundle;
+    use crate::define_extern_fn_type;
     use skf_api::native::types::{
         BlockCipherParam, ECCCipherBlob, ECCPrivateKeyBlob, ECCPublicKeyBlob, ECCSignatureBlob,
         EnvelopedKeyBlob, BOOL, BYTE, HANDLE, ULONG,
     };
-    pub(crate) type SKF_GenRandom =
-        SymbolBundle<unsafe extern "C" fn(HANDLE, *mut BYTE, ULONG) -> ULONG>;
-    pub(crate) type SKF_CloseHandle = SymbolBundle<unsafe extern "C" fn(HANDLE) -> ULONG>;
-    pub(super) type SKF_SetSymmKey =
-        SymbolBundle<unsafe extern "C" fn(HANDLE, *const BYTE, ULONG, *mut HANDLE) -> ULONG>;
-    pub(super) type SKF_EncryptInit =
-        SymbolBundle<unsafe extern "C" fn(HANDLE, BlockCipherParam) -> ULONG>;
-    pub(super) type SKF_Encrypt = SymbolBundle<
-        unsafe extern "C" fn(HANDLE, *const BYTE, ULONG, *mut BYTE, *mut ULONG) -> ULONG,
-    >;
-    pub(super) type SKF_EncryptUpdate = SymbolBundle<
-        unsafe extern "C" fn(HANDLE, *const BYTE, ULONG, *mut BYTE, *mut ULONG) -> ULONG,
-    >;
-    pub(super) type SKF_EncryptFinal =
-        SymbolBundle<unsafe extern "C" fn(HANDLE, *mut BYTE, *mut ULONG) -> ULONG>;
-    pub(super) type SKF_DecryptInit =
-        SymbolBundle<unsafe extern "C" fn(HANDLE, BlockCipherParam) -> ULONG>;
-    pub(super) type SKF_Decrypt = SymbolBundle<
-        unsafe extern "C" fn(HANDLE, *const BYTE, ULONG, *mut BYTE, *mut ULONG) -> ULONG,
-    >;
-    pub(super) type SKF_DecryptUpdate = SymbolBundle<
-        unsafe extern "C" fn(HANDLE, *const BYTE, ULONG, *mut BYTE, *mut ULONG) -> ULONG,
-    >;
-    pub(super) type SKF_DecryptFinal =
-        SymbolBundle<unsafe extern "C" fn(HANDLE, *mut BYTE, *mut ULONG) -> ULONG>;
 
-    pub(super) type SKF_ExtECCEncrypt = SymbolBundle<
-        unsafe extern "C" fn(
-            HANDLE,
-            *const ECCPublicKeyBlob,
-            *const BYTE,
-            ULONG,
-            *mut ECCCipherBlob,
-        ) -> ULONG,
-    >;
-
-    pub(super) type SKF_ExtECCDecrypt = SymbolBundle<
-        unsafe extern "C" fn(
-            HANDLE,
-            *const ECCPrivateKeyBlob,
-            *const ECCCipherBlob,
-            *mut BYTE,
-            *mut ULONG,
-        ) -> ULONG,
-    >;
-
-    pub(super) type SKF_ExtECCSign = SymbolBundle<
-        unsafe extern "C" fn(
-            HANDLE,
-            *const ECCPrivateKeyBlob,
-            *const BYTE,
-            ULONG,
-            *mut ECCSignatureBlob,
-        ) -> ULONG,
-    >;
-
-    pub(super) type SKF_ExtECCVerify = SymbolBundle<
-        unsafe extern "C" fn(
-            HANDLE,
-            *const ECCPublicKeyBlob,
-            *const BYTE,
-            ULONG,
-            *const ECCSignatureBlob,
-        ) -> ULONG,
-    >;
-    pub(super) type SKF_GenECCKeyPair =
-        SymbolBundle<unsafe extern "C" fn(HANDLE, ULONG, key_blob: *mut ECCPublicKeyBlob) -> ULONG>;
-
-    pub(super) type SKF_ImportECCKeyPair =
-        SymbolBundle<unsafe extern "C" fn(HANDLE, *const EnvelopedKeyBlob) -> ULONG>;
-
-    pub(super) type SKF_ECCSignData = SymbolBundle<
-        unsafe extern "C" fn(HANDLE, *const BYTE, ULONG, *mut ECCSignatureBlob) -> ULONG,
-    >;
-
-    pub(super) type SKF_ECCVerify = SymbolBundle<
-        unsafe extern "C" fn(
-            HANDLE,
-            *const ECCPublicKeyBlob,
-            *const BYTE,
-            ULONG,
-            *const ECCSignatureBlob,
-        ) -> ULONG,
-    >;
-
-    pub(super) type SKF_ECCExportSessionKey = SymbolBundle<
-        unsafe extern "C" fn(
-            HANDLE,
-            ULONG,
-            *const ECCPublicKeyBlob,
-            *mut ECCCipherBlob,
-            *mut HANDLE,
-        ) -> ULONG,
-    >;
-
-    pub(super) type SKF_GenerateAgreementDataWithECC = SymbolBundle<
-        unsafe extern "C" fn(
-            HANDLE,
-            ULONG,
-            *mut ECCPublicKeyBlob,
-            *const BYTE,
-            ULONG,
-            *mut HANDLE,
-        ) -> ULONG,
-    >;
-
-    pub(super) type SKF_GenerateAgreementDataAndKeyWithECC = SymbolBundle<
-        unsafe extern "C" fn(
-            HANDLE,
-            ULONG,
-            *const ECCPublicKeyBlob,
-            *const ECCPublicKeyBlob,
-            *mut ECCPublicKeyBlob,
-            *const BYTE,
-            ULONG,
-            *const BYTE,
-            ULONG,
-            *mut HANDLE,
-        ) -> ULONG,
-    >;
-
-    pub(super) type SKF_ExportPublicKey = SymbolBundle<
-        unsafe extern "C" fn(
-            HANDLE,
-            sign_flag: BOOL,
-            data: *mut BYTE,
-            data_len: *mut ULONG,
-        ) -> ULONG,
-    >;
-
-    pub(super) type SKF_ImportSessionKey = SymbolBundle<
-        unsafe extern "C" fn(
-            HANDLE,
-            ULONG,
-            data: *const BYTE,
-            data_len: ULONG,
-            key_handle: *mut HANDLE,
-        ) -> ULONG,
-    >;
-
-    pub(super) type SKF_GenerateKeyWithECC = SymbolBundle<
-        unsafe extern "C" fn(
-            agreement_key: HANDLE,
-            *const ECCPublicKeyBlob,
-            *const ECCPublicKeyBlob,
-            *const BYTE,
-            ULONG,
-            *mut HANDLE,
-        ) -> ULONG,
-    >;
+    define_extern_fn_type!(pub(crate) SKF_GenRandom = fn(HANDLE, *mut BYTE, ULONG) -> ULONG);
+    define_extern_fn_type!(pub(crate) SKF_CloseHandle = fn(HANDLE) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_SetSymmKey = fn(HANDLE, *const BYTE, ULONG, *mut HANDLE) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_EncryptInit = fn(HANDLE, BlockCipherParam) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_Encrypt = fn(HANDLE, *const BYTE, ULONG, *mut BYTE, *mut ULONG) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_EncryptUpdate = fn(HANDLE, *const BYTE, ULONG, *mut BYTE, *mut ULONG) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_EncryptFinal = fn(HANDLE, *mut BYTE, *mut ULONG) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_DecryptInit = fn(HANDLE, BlockCipherParam) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_Decrypt = fn(HANDLE, *const BYTE, ULONG, *mut BYTE, *mut ULONG) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_DecryptUpdate = fn(HANDLE, *const BYTE, ULONG, *mut BYTE, *mut ULONG) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_DecryptFinal = fn(HANDLE, *mut BYTE, *mut ULONG) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_ExtECCEncrypt = fn(HANDLE, *const ECCPublicKeyBlob, *const BYTE, ULONG, *mut ECCCipherBlob) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_ExtECCDecrypt = fn(HANDLE, *const ECCPrivateKeyBlob, *const ECCCipherBlob, *mut BYTE, *mut ULONG) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_ExtECCSign = fn(HANDLE, *const ECCPrivateKeyBlob, *const BYTE, ULONG, *mut ECCSignatureBlob) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_ExtECCVerify = fn(HANDLE, *const ECCPublicKeyBlob, *const BYTE, ULONG, *const ECCSignatureBlob) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_GenECCKeyPair = fn(HANDLE, ULONG, *mut ECCPublicKeyBlob) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_ImportECCKeyPair = fn(HANDLE, *const EnvelopedKeyBlob) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_ECCSignData = fn(HANDLE, *const BYTE, ULONG, *mut ECCSignatureBlob) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_ECCVerify = fn(HANDLE, *const ECCPublicKeyBlob, *const BYTE, ULONG, *const ECCSignatureBlob) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_ECCExportSessionKey = fn(HANDLE, ULONG, *const ECCPublicKeyBlob, *mut ECCCipherBlob, *mut HANDLE) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_GenerateAgreementDataWithECC = fn(HANDLE, ULONG, *mut ECCPublicKeyBlob, *const BYTE, ULONG, *mut HANDLE) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_GenerateAgreementDataAndKeyWithECC = fn(HANDLE, ULONG, *const ECCPublicKeyBlob, *const ECCPublicKeyBlob, *mut ECCPublicKeyBlob, *const BYTE, ULONG, *const BYTE, ULONG, *mut HANDLE) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_ExportPublicKey = fn(HANDLE, BOOL, *mut BYTE, *mut ULONG) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_ImportSessionKey = fn(HANDLE, ULONG, *const BYTE, ULONG, *mut HANDLE) -> ULONG);
+    define_extern_fn_type!(pub(super) SKF_GenerateKeyWithECC = fn(HANDLE, *const ECCPublicKeyBlob, *const ECCPublicKeyBlob, *const BYTE, ULONG, *mut HANDLE) -> ULONG);
 }
 
 #[derive(Default)]
@@ -578,3 +406,4 @@ mod test {
         assert!(ModDev::load_symbols(&lib).is_ok());
     }
 }
+
