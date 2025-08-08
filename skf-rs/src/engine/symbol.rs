@@ -1,18 +1,17 @@
 use libloading::{Library, Symbol};
 use std::sync::Arc;
 
-// 定义宏，根据平台选择合适的调用约定
+/// Helper macro to define extern function type for each platform
 #[macro_export]
 macro_rules! define_extern_fn_type {
     ($vis:vis $name:ident = fn($($arg:ty),*) -> $ret:ty) => {
         #[cfg(all(target_os = "windows", target_arch = "x86"))]
         $vis type $name = $crate::engine::symbol::SymbolBundle<unsafe extern "stdcall" fn($($arg),*) -> $ret>;
-        
+
         #[cfg(not(all(target_os = "windows", target_arch = "x86")))]
         $vis type $name = $crate::engine::symbol::SymbolBundle<unsafe extern "C" fn($($arg),*) -> $ret>;
     };
 }
-
 
 /// Symbol bundle with library pointer
 pub struct SymbolBundle<T: 'static> {
@@ -406,4 +405,3 @@ mod test {
         assert!(ModDev::load_symbols(&lib).is_ok());
     }
 }
-
