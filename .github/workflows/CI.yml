@@ -19,7 +19,7 @@ jobs:
   validity:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions-rust-lang/setup-rust-toolchain@v1
       - uses: actions/cache@v4
         with:
@@ -32,7 +32,7 @@ jobs:
   formating:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Check Rust formatting with rustfmt
         run: cargo fmt --all --check
 
@@ -40,7 +40,7 @@ jobs:
     needs: validity
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/cache@v4
         with:
           path: ${{ env.CACHE_PATHS }}
@@ -52,7 +52,7 @@ jobs:
     needs: validity
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/cache@v4
         with:
           path: ${{ env.CACHE_PATHS }}
@@ -63,7 +63,7 @@ jobs:
   publish-ability:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Check that it will publish to crates
         run: |
           cargo publish --no-verify --dry-run -p skf-api
