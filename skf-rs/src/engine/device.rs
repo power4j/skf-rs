@@ -266,7 +266,7 @@ impl DeviceCrypto for SkfDeviceImpl {
             .expect("Symbol not load");
         let cipher_mem = cipher.blob_bytes();
         let mut buff: Vec<u8> = Vec::with_capacity(cipher.cipher.len());
-        let mut buff_len: ULONG = buff.len() as ULONG;
+        let mut buff_len: ULONG = buff.capacity() as ULONG;
 
         let ret = unsafe {
             func(
