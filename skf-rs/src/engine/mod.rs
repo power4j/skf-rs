@@ -8,6 +8,7 @@ pub(crate) mod crypto;
 pub(crate) mod device;
 pub(crate) mod manager;
 pub(crate) mod symbol;
+mod symbol_abi;
 
 /// Utility to hold native library handle and use SKF Object easily
 pub struct Engine {

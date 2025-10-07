@@ -2,5 +2,6 @@
 resolver = "2"
 members = [
     "skf-api",
-    "skf-rs"
+    "skf-rs",
+    "skf-abi-stub",
 ]

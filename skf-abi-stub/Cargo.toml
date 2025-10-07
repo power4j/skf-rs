@@ -1,0 +1,21 @@
+[package]
+name = "skf-abi-stub"
+version = "0.1.0"
+edition = "2021"
+authors = [
+    "CJ <power4j@outlook.com>",
+]
+description = """
+Stub for SKF FFI.
+"""
+publish = false
+
+[lib]
+# output libskf_abi_stub.so/dll
+name = "skf_abi_stub"
+crate-type = ["dylib"]
+
+[dependencies]
+
+[build-dependencies]
+cc = "1.2"

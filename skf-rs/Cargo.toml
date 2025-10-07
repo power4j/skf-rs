@@ -25,3 +25,4 @@ libloading = "0.8"
 
 [dev-dependencies]
 hex = "0.4"
+skf-abi-stub = { path = "../skf-abi-stub" }
